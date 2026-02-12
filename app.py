@@ -9,6 +9,7 @@ import urllib.request
 from streamlit_option_menu import option_menu
 import textwrap
 import random
+import hashlib
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 if 'platform_config' not in st.session_state:
@@ -166,7 +167,7 @@ if 'hse_questions' not in st.session_state:
         ],
         "Mudança": [
             {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Tirar dúvidas."},
-            {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
+            {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes."},
             {"id": 32, "q": "Mudanças são claras?", "rev": False, "help": "Ex: Comunicação transparente sobre o 'novo jeito'."}
         ]
     }
@@ -194,7 +195,63 @@ def logout(): st.session_state.logged_in = False; st.session_state.user_role = N
 def kpi_card(title, value, icon, color_class):
     st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div></div><div><div class="kpi-value">{value}</div><div class="kpi-title">{title}</div></div></div>""", unsafe_allow_html=True)
 
-# --- 5. TELAS DO SISTEMA ---
+# --- 5. FUNÇÕES DE INTELIGÊNCIA HSE (ROBUSTA) ---
+def gerar_analise_robusta(dimensoes):
+    """Gera um texto de conclusão técnica detalhado baseado nas dimensões."""
+    riscos_altos = [k for k, v in dimensoes.items() if v < 3.0]
+    riscos_medios = [k for k, v in dimensoes.items() if 3.0 <= v < 4.0]
+    pontos_fortes = [k for k, v in dimensoes.items() if v >= 4.0]
+
+    texto = "Com base na aplicação da ferramenta HSE Indicator Tool, a avaliação diagnóstica identificou "
+    
+    if riscos_altos:
+        texto += f"pontos de atenção crítica nas dimensões: {', '.join(riscos_altos)}. Estes fatores, se não mitigados, apresentam potencial elevado para desenvolvimento de estresse ocupacional e doenças relacionadas ao trabalho. "
+    else:
+        texto += "um ambiente de trabalho predominantemente saudável, sem riscos críticos imediatos. "
+
+    if riscos_medios:
+        texto += f"Observam-se oportunidades de melhoria preventiva nas áreas de: {', '.join(riscos_medios)}, que requerem monitoramento. "
+    
+    if pontos_fortes:
+        texto += f"Destacam-se como fatores protetivos e pontos fortes da cultura organizacional: {', '.join(pontos_fortes)}. "
+
+    texto += "Recomenda-se a implementação imediata do plano de ação estipulado para restabelecer o equilíbrio psicossocial e garantir a conformidade com a NR-01."
+    return texto
+
+def banco_de_sugestoes(dimensoes):
+    """Retorna um banco de ações possíveis baseado nos riscos identificados."""
+    sugestoes = []
+    
+    # Lógica para DEMANDA (Se < 3.5)
+    if dimensoes.get("Demandas", 5) < 3.5:
+        sugestoes.append({"acao": "Redistribuição de Carga", "estrat": "Mapear atividades e redistribuir tarefas entre a equipe para evitar sobrecarga individual.", "area": "Demandas"})
+        sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Negociar prazos mais realistas com clientes internos e externos baseados na capacidade produtiva.", "area": "Demandas"})
+        sugestoes.append({"acao": "Priorização de Tarefas", "estrat": "Implementar matriz de priorização (urgente x importante) para focar no essencial.", "area": "Demandas"})
+
+    # Lógica para CONTROLE
+    if dimensoes.get("Controle", 5) < 3.5:
+        sugestoes.append({"acao": "Autonomia na Agenda", "estrat": "Permitir que colaboradores definam a ordem de execução de suas tarefas diárias.", "area": "Controle"})
+        sugestoes.append({"acao": "Participação em Decisões", "estrat": "Envolver a equipe em reuniões de planejamento e melhoria de processos.", "area": "Controle"})
+
+    # Lógica para SUPORTE (Gestor/Pares)
+    if dimensoes.get("Suporte Gestor", 5) < 3.5 or dimensoes.get("Suporte Pares", 5) < 3.5:
+        sugestoes.append({"acao": "Mentoria de Liderança", "estrat": "Capacitar gestores em soft skills, escuta ativa e feedback construtivo.", "area": "Suporte"})
+        sugestoes.append({"acao": "Reuniões 1:1", "estrat": "Estabelecer rotina quinzenal de conversas individuais focadas em bem-estar e desenvolvimento.", "area": "Suporte"})
+        sugestoes.append({"acao": "Programas de Integração", "estrat": "Criar dinâmicas de team building para fortalecer o vínculo entre pares.", "area": "Suporte"})
+
+    # Lógica para RELACIONAMENTOS
+    if dimensoes.get("Relacionamentos", 5) < 3.5:
+        sugestoes.append({"acao": "Política de Respeito", "estrat": "Divulgar amplamente o código de conduta e canais de denúncia anônimos.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Workshop de CNV", "estrat": "Realizar treinamento de Comunicação Não-Violenta para reduzir atritos.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Comitê de Mediação", "estrat": "Criar grupo multidisciplinar para mediar conflitos interpessoais.", "area": "Relacionamentos"})
+
+    # Default
+    if not sugestoes:
+        sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Realizar pulsos de pesquisa trimestrais para monitoramento.", "area": "Geral"})
+
+    return sugestoes
+
+# --- 6. TELAS DO SISTEMA ---
 
 def login_screen():
     c1, c2, c3 = st.columns([1, 1.2, 1])
@@ -335,14 +392,77 @@ def admin_dashboard():
             sig_tecnico_nome = st.text_input("Nome Resp. Técnico", value="Cristiane C. Lima")
             sig_tecnico_cargo = st.text_input("Cargo Resp. Técnico", value="Consultora Pessin Gestão")
 
-        with st.expander("📝 Editar Conteúdo Técnico", expanded=True):
-            analise_texto = st.text_area("Conclusão Técnica:", value="A avaliação identificou riscos críticos na dimensão 'Demandas', com 65% dos colaboradores relatando prazos irreais.")
-            st.markdown("#### Plano de Ação")
-            if 'acoes_list' not in st.session_state:
-                st.session_state.acoes_list = [{"acao": "Revisão de Job Description", "estrat": "Mapear todas as funções do setor e redistribuir carga.", "area": "Demanda", "resp": "RH", "prazo": "30/05"}]
-            edited_df = st.data_editor(pd.DataFrame(st.session_state.acoes_list), num_rows="dynamic", use_container_width=True, 
-                                       column_config={"acao": "Ação", "estrat": "Estratégia (Como)", "area": "Área", "resp": "Resp.", "prazo": "Prazo"})
-            if not edited_df.empty: st.session_state.acoes_list = edited_df.to_dict('records')
+        # --- INTELIGÊNCIA AUTOMÁTICA ---
+        # 1. Análise Robusta
+        analise_auto = gerar_analise_robusta(empresa.get('dimensoes', {}))
+        
+        # 2. Banco de Sugestões (Várias opções para escolher)
+        sugestoes_auto = banco_de_sugestoes(empresa.get('dimensoes', {}))
+        
+        # --- EDIÇÃO ---
+        with st.expander("📝 Editar Análise e Selecionar Ações", expanded=True):
+            # Edição da Conclusão
+            st.markdown("##### 1. Conclusão Técnica (Gerada Automaticamente)")
+            analise_texto = st.text_area("Texto da Conclusão:", value=analise_auto, height=150)
+            
+            st.markdown("---")
+            st.markdown("##### 2. Seleção de Ações para o Plano")
+            st.caption("O sistema identificou os riscos e sugere as seguintes ações. Selecione quais deseja incluir no relatório final:")
+            
+            # Criar lista de strings para o multiselect
+            opcoes_sugestoes = [f"[{s['area']}] {s['acao']}: {s['estrat']}" for s in sugestoes_auto]
+            
+            # Estado para guardar a seleção
+            if 'selected_suggestions' not in st.session_state:
+                st.session_state.selected_suggestions = opcoes_sugestoes[:3] # Seleciona as 3 primeiras por padrao
+            
+            selecionadas = st.multiselect(
+                "Banco de Sugestões do Sistema:", 
+                options=opcoes_sugestoes,
+                default=opcoes_sugestoes[:4] # Sugere as top 4
+            )
+            
+            # Converter seleção de volta para formato de dicionário para o data_editor
+            acoes_para_tabela = []
+            for item_str in selecionadas:
+                # Encontrar o objeto original
+                for s in sugestoes_auto:
+                    if f"[{s['area']}] {s['acao']}: {s['estrat']}" == item_str:
+                        acoes_para_tabela.append({
+                            "acao": s['acao'],
+                            "estrat": s['estrat'],
+                            "area": s['area'],
+                            "resp": "A Definir", # Padrão para editar
+                            "prazo": "30 dias"   # Padrão para editar
+                        })
+            
+            st.markdown("##### 3. Refinamento do Plano (Definir Responsáveis e Prazos)")
+            # Simplificação para UX: O Data Editor é inicializado com a seleção.
+            if 'acoes_finais' not in st.session_state or st.session_state.get('last_company_rel') != empresa['id']:
+                 st.session_state.acoes_finais = acoes_para_tabela
+                 st.session_state.last_company_rel = empresa['id']
+            
+            # Botão para resetar a tabela com as novas seleções do multiselect (caso o usuário mude de ideia)
+            if st.button("🔄 Atualizar Tabela com Itens Selecionados acima"):
+                st.session_state.acoes_finais = acoes_para_tabela
+                st.toast("Tabela atualizada com as sugestões selecionadas!")
+
+            edited_df = st.data_editor(
+                pd.DataFrame(st.session_state.acoes_finais), 
+                num_rows="dynamic", 
+                use_container_width=True, 
+                column_config={
+                    "acao": st.column_config.TextColumn("Ação Macro", width="medium"),
+                    "estrat": st.column_config.TextColumn("Estratégia (Como)", width="large"),
+                    "area": st.column_config.SelectboxColumn("Área", options=["Demanda", "Controle", "Suporte", "Relacionamentos", "Papel", "Mudança"], width="small"),
+                    "resp": st.column_config.TextColumn("Responsável", width="small"),
+                    "prazo": st.column_config.TextColumn("Prazo", width="small")
+                }
+            )
+            
+            # Atualiza o estado com o que foi editado na mão
+            if not edited_df.empty:
+                st.session_state.acoes_finais = edited_df.to_dict('records')
 
         if st.button("🖨️ Gerar Relatório (PDF)", type="primary"):
             st.markdown("---")
@@ -368,7 +488,7 @@ def admin_dashboard():
                     cor_bar = COR_RISCO_ALTO if pct > 50 else (COR_RISCO_MEDIO if pct > 30 else COR_RISCO_BAIXO)
                     html_raio_x += f'<div style="margin-bottom:4px;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{pct}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:5px; border-radius:2px;"><div style="width:{pct}%; background:{cor_bar}; height:100%; border-radius:2px;"></div></div></div>'
 
-            html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
+            html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_finais])
 
             # ESTE É O BLOCO HTML CORRIGIDO. REMOVIDA INDENTAÇÃO PARA NÃO DAR ERRO.
             raw_html = f"""
