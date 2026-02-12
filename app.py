@@ -1,357 +1,376 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
 import time
 import base64
 import urllib.parse
+from streamlit_option_menu import option_menu
 
-# --- CONFIGURAÇÃO DA PÁGINA E IDENTIDADE VISUAL ---
-NOME_PLATAFORMA = "Elo NR-01"
-COR_PRIMARIA = "#2980b9" # Azul Elo
-COR_SECUNDARIA = "#2c3e50" # Azul Corporativo
-COR_FUNDO = "#f4f6f7"
+# --- 1. CONFIGURAÇÃO GERAL E BRANDING ---
+NOME_SISTEMA = "Elo NR-01"
+COR_PRIMARIA = "#005f73"  # Azul Petróleo (Sóbrio e Tech)
+COR_SECUNDARIA = "#0a9396" # Verde Água (Saúde Mental)
+COR_DESTAQUE = "#ee9b00"   # Amarelo Queimado (Atenção/Risco)
+COR_FUNDO = "#f0f2f6"
 
 st.set_page_config(
-    page_title=f"{NOME_PLATAFORMA} | by Pessin",
+    page_title=f"{NOME_SISTEMA} | Pessin Gestão",
     page_icon="🔗",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# --- ESTILIZAÇÃO CSS (Design System) ---
+# --- 2. CSS AVANÇADO (LAYOUT PROFISSIONAL) ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     
-    .main {{background-color: {COR_FUNDO}; font-family: 'Nunito', sans-serif;}}
+    /* Reset Geral */
+    .stApp {{ background-color: {COR_FUNDO}; font-family: 'Roboto', sans-serif; }}
     
-    /* Tipografia */
-    h1, h2, h3 {{color: {COR_SECUNDARIA}; font-family: 'Nunito', sans-serif;}}
-    .destaque {{color: {COR_PRIMARIA}; font-weight: bold;}}
+    /* Sidebar */
+    [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #ddd; }}
+    
+    /* Cards de KPI */
+    .kpi-card {{
+        background: white; padding: 20px; border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center;
+        border-top: 4px solid {COR_PRIMARIA}; transition: transform 0.3s;
+    }}
+    .kpi-card:hover {{ transform: translateY(-5px); }}
+    .kpi-val {{ font-size: 28px; font-weight: bold; color: {COR_PRIMARIA}; }}
+    .kpi-lbl {{ font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 1px; }}
+
+    /* Relatório (Simulação A4) */
+    .a4-paper {{
+        background: white; width: 100%; max-width: 210mm; min-height: 297mm;
+        margin: auto; padding: 40px; box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        color: #333;
+    }}
+    
+    /* Estilos de Impressão */
+    @media print {{
+        [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
+        .a4-paper {{ box-shadow: none; margin: 0; padding: 20px; width: 100%; }}
+        .break-page {{ page-break-after: always; }}
+    }}
     
     /* Botões */
     .stButton>button {{
-        width: 100%; border-radius: 8px; height: 3em; font-weight: bold;
-        background-color: {COR_SECUNDARIA}; color: white; border: none;
-        transition: all 0.3s ease;
-    }}
-    .stButton>button:hover {{
-        background-color: {COR_PRIMARIA}; transform: translateY(-2px);
-    }}
-    
-    /* Cards do Dashboard */
-    .metric-card {{
-        background-color: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;
-        border-bottom: 4px solid {COR_PRIMARIA};
-    }}
-    .metric-value {{font-size: 2em; font-weight: 800; color: {COR_SECUNDARIA};}}
-    .metric-label {{color: #7f8c8d; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px;}}
-    
-    /* Área de Impressão (Relatório) */
-    @media print {{
-        .stSidebar, .stButton, .no-print {{display: none !important;}}
-        .report-header {{text-align: center; margin-bottom: 30px;}}
-        .signature-line {{border-top: 1px solid #000; width: 80%; margin: 60px auto 10px auto;}}
-        .citation-box {{border: 1px solid #ccc; padding: 10px; font-style: italic; font-size: 0.9em; page-break-inside: avoid;}}
-        .action-plan {{border-left: 5px solid {COR_PRIMARIA}; padding-left: 15px; margin-top: 20px; page-break-inside: avoid;}}
-    }}
-    
-    /* Elementos Visuais */
-    .link-box {{
-        background-color: white; border: 2px dashed {COR_PRIMARIA};
-        padding: 15px; border-radius: 8px; text-align: center;
-        font-family: monospace; color: {COR_SECUNDARIA}; font-weight: bold;
-    }}
-    .nr01-citation {{
-        background-color: #e8f8f5; border-left: 5px solid {COR_PRIMARIA};
-        padding: 15px; margin-bottom: 20px; border-radius: 5px;
-        font-size: 0.95em; color: {COR_SECUNDARIA};
+        border-radius: 6px; font-weight: 600; text-transform: uppercase;
+        border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- DADOS MOCKADOS (SIMULAÇÃO DE BANCO DE DADOS) ---
-if 'page' not in st.session_state: st.session_state.page = 'login'
-if 'mock_companies' not in st.session_state:
-    st.session_state.mock_companies = [
-        {"id": "IND01", "Nome": "Indústria Têxtil A", "Setor": "Industrial", "Risco": 3, "Func": 150, "Logo": None, "Resp": "Carlos Silva", "Score": 2.8, "FatorCritico": "Demandas"},
-        {"id": "TECH02", "Nome": "Tech Solutions", "Setor": "Serviços", "Risco": 1, "Func": 45, "Logo": None, "Resp": "Ana Souza", "Score": 4.2, "FatorCritico": "Controle"},
+# --- 3. GESTÃO DE ESTADO (BANCO DE DADOS NA MEMÓRIA) ---
+if 'users_db' not in st.session_state:
+    st.session_state.users_db = {"admin": "admin", "cris.pessin": "123456"} # Usuários Admin
+
+if 'companies_db' not in st.session_state:
+    # Dados iniciais para o dashboard não ficar vazio
+    st.session_state.companies_db = [
+        {"id": "IND01", "razao": "Indústria Têxtil Fabril Ltda", "cnpj": "12.345.678/0001-90", "setor": "Industrial", "risco": 3, "func": 150, "resp": "Carlos Silva", "email": "carlos@fabril.com", "score": 2.8, "status": "Concluído", "data": "10/02/2026"},
+        {"id": "TEC02", "razao": "TechSolutions S.A.", "cnpj": "98.765.432/0001-10", "setor": "Tecnologia", "risco": 1, "func": 45, "resp": "Ana Souza", "email": "ana@tech.com", "score": 4.1, "status": "Em Andamento", "data": "12/02/2026"},
     ]
 
-# --- FUNÇÕES DE LÓGICA DE NEGÓCIO ---
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'user_role' not in st.session_state: st.session_state.user_role = None
+if 'active_page' not in st.session_state: st.session_state.active_page = 'Login'
 
-def show_logo_svg(width=300):
+# --- 4. FUNÇÕES UTILITÁRIAS ---
+def render_svg_logo(width=200):
     """Renderiza a logo vetorial Elo NR-01"""
     svg = f"""
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="{width}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="{width}">
       <style>
-        .texto-elo {{ font-family: 'Helvetica', sans-serif; font-weight: bold; font-size: 60px; fill: {COR_SECUNDARIA}; }}
-        .texto-nr {{ font-family: 'Helvetica', sans-serif; font-weight: normal; font-size: 60px; fill: {COR_PRIMARIA}; }}
-        .icone {{ fill: none; stroke: {COR_PRIMARIA}; stroke-width: 12; stroke-linecap: round; }}
+        .t1 {{ font-family: sans-serif; font-weight: bold; font-size: 45px; fill: {COR_PRIMARIA}; }}
+        .t2 {{ font-family: sans-serif; font-weight: 300; font-size: 45px; fill: {COR_SECUNDARIA}; }}
+        .icon {{ fill: none; stroke: {COR_DESTAQUE}; stroke-width: 8; stroke-linecap: round; }}
       </style>
-      <g transform="translate(30, 35)">
-        <path class="icone" d="M15,25 L45,25 A15,15 0 0 1 45,55 L15,55 A15,15 0 0 1 15,25 Z" />
-        <path class="icone" d="M40,25 L70,25 A15,15 0 0 1 70,55 L40,55 A15,15 0 0 1 40,25 Z" transform="translate(25, 0)" />
-      </g>
-      <text x="140" y="80" class="texto-elo">Elo</text>
-      <text x="245" y="80" class="texto-nr">NR-01</text>
+      <path class="icon" d="M20,35 L50,35 A15,15 0 0 1 50,65 L20,65 A15,15 0 0 1 20,35 Z" />
+      <path class="icon" d="M45,35 L75,35 A15,15 0 0 1 75,65 L45,65 A15,15 0 0 1 45,35 Z" />
+      <text x="100" y="68" class="t1">Elo</text>
+      <text x="180" y="68" class="t2">NR-01</text>
     </svg>
     """
     b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
-    st.markdown(f'<div style="display:flex;justify-content:center;"><img src="data:image/svg+xml;base64,{b64}"></div>', unsafe_allow_html=True)
+    return f'<img src="data:image/svg+xml;base64,{b64}">'
 
-def get_hse_actions(fator):
-    """Retorna sugestões técnicas baseadas no HSE Workbook"""
-    acoes = {
-        "Demandas": [
-            "Revisão da distribuição de carga de trabalho entre a equipe.",
-            "Implementação de matriz de priorização de tarefas.",
-            "Renegociação de prazos irrealistas com clientes internos."
-        ],
-        "Controle": [
-            "Aumentar autonomia sobre o ritmo de trabalho.",
-            "Permitir micro-decisões sobre a ordem das tarefas.",
-            "Criar fóruns de participação para melhorias de processo."
-        ],
-        "Apoio Gestão": [
-            "Treinamento de liderança em escuta ativa e feedback.",
-            "Estabelecer reuniões 1:1 focadas em desenvolvimento.",
-            "Clarificar canais de suporte técnico e emocional."
-        ],
-        "Relacionamentos": [
-            "Reforço das políticas de combate ao assédio e discriminação.",
-            "Workshop de Comunicação Não-Violenta (CNV).",
-            "Mediação de conflitos interpessoais identificados."
-        ]
-    }
-    return acoes.get(fator, ["Realizar diagnóstico aprofundado."])
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.user_role = None
+    st.rerun()
 
-def navbar():
-    col1, col2 = st.columns([1, 8])
-    with col1:
-        if st.button("🏠 Home"):
-            st.session_state.page = 'login'
-            st.rerun()
+# --- 5. MÓDULOS DO SISTEMA ---
 
-# --- TELA 1: LOGIN ---
-def show_login():
-    st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        show_logo_svg(350)
-        st.markdown("<p style='text-align: center; color: #7f8c8d;'>Gestão Inteligente de Riscos Psicossociais</p><br>", unsafe_allow_html=True)
+def login_screen():
+    c1, c2, c3 = st.columns([1,1.5,1])
+    with c2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center'>{render_svg_logo(280)}</div>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align:center; color:#666;'>Gestão de Riscos Psicossociais</h4><br>", unsafe_allow_html=True)
         
-        tab_colab, tab_admin = st.tabs(["Sou Colaborador", "Área do Cliente / RH"])
+        tab_colab, tab_admin = st.tabs(["Sou Colaborador", "Área Restrita (RH)"])
         
         with tab_colab:
-            st.info("Digite o código recebido para iniciar sua avaliação anônima.")
-            cod = st.text_input("Código da Empresa", placeholder="Ex: PESSIN25", key="login_cod")
-            if st.button("Iniciar Avaliação", type="primary"):
-                company = next((c for c in st.session_state.mock_companies if c['id'] == cod), None)
-                if company:
-                    st.session_state.current_company = company
-                    st.session_state.page = 'survey'
-                    st.rerun()
-                else:
-                    st.error("Código inválido.")
+            with st.form("login_colab"):
+                cod = st.text_input("Insira o Código da Empresa", placeholder="Ex: IND01")
+                if st.form_submit_button("Iniciar Avaliação", type="primary"):
+                    company = next((c for c in st.session_state.companies_db if c['id'] == cod), None)
+                    if company:
+                        st.session_state.current_company = company
+                        st.session_state.logged_in = True
+                        st.session_state.user_role = 'colaborador'
+                        st.rerun()
+                    else:
+                        st.error("Código não encontrado.")
         
         with tab_admin:
-            email = st.text_input("E-mail")
-            senha = st.text_input("Senha", type="password")
-            if st.button("Entrar no Painel"):
-                if email == "admin" and senha == "admin":
-                    st.session_state.page = 'admin'
-                    st.rerun()
-                else:
-                    st.error("Login incorreto. Tente admin / admin")
+            with st.form("login_admin"):
+                user = st.text_input("Usuário")
+                pwd = st.text_input("Senha", type="password")
+                if st.form_submit_button("Entrar no Painel"):
+                    if user in st.session_state.users_db and st.session_state.users_db[user] == pwd:
+                        st.session_state.logged_in = True
+                        st.session_state.user_role = 'admin'
+                        st.rerun()
+                    else:
+                        st.error("Credenciais inválidas.")
 
-# --- TELA 2: DASHBOARD ADMIN (Consultor Pessin) ---
-def show_admin():
-    navbar()
-    col_h1, col_h2 = st.columns([1, 15])
-    with col_h1: st.markdown("## 📊")
-    with col_h2: st.markdown("## Painel de Controle Elo NR-01")
-    
-    tab1, tab2, tab3 = st.tabs(["Visão Geral", "Cadastrar & Divulgar", "Relatórios & Planos de Ação"])
-    
-    # 1. VISÃO GERAL
-    with tab1:
+def admin_dashboard():
+    # Menu Lateral Profissional
+    with st.sidebar:
+        st.markdown(f"<div style='text-align:center; margin-bottom:20px'>{render_svg_logo(150)}</div>", unsafe_allow_html=True)
+        selected = option_menu(
+            "Menu Principal",
+            ["Dashboard", "Empresas", "Relatórios", "Acessos", "Sair"],
+            icons=['graph-up', 'building', 'file-earmark-pdf', 'key', 'box-arrow-right'],
+            menu_icon="cast", default_index=0,
+            styles={
+                "nav-link-selected": {"background-color": COR_PRIMARIA},
+            }
+        )
+        if selected == "Sair": logout()
+
+    # --- PÁGINA: DASHBOARD ---
+    if selected == "Dashboard":
+        st.title("📊 Visão Geral da Carteira")
+        st.markdown("---")
+        
+        # KPIs
+        df = pd.DataFrame(st.session_state.companies_db)
         c1, c2, c3, c4 = st.columns(4)
-        c1.markdown(f"<div class='metric-card'><div class='metric-value'>{len(st.session_state.mock_companies)}</div><div class='metric-label'>Empresas</div></div>", unsafe_allow_html=True)
-        c2.markdown("<div class='metric-card'><div class='metric-value'>342</div><div class='metric-label'>Vidas Impactadas</div></div>", unsafe_allow_html=True)
-        c3.markdown("<div class='metric-card'><div class='metric-value'>12</div><div class='metric-label'>Laudos Gerados</div></div>", unsafe_allow_html=True)
-        c4.markdown("<div class='metric-card'><div class='metric-value'>98%</div><div class='metric-label'>Conformidade</div></div>", unsafe_allow_html=True)
+        c1.markdown(f"<div class='kpi-card'><div class='kpi-val'>{len(df)}</div><div class='kpi-lbl'>Empresas Ativas</div></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='kpi-card'><div class='kpi-val'>{df['func'].sum()}</div><div class='kpi-lbl'>Vidas Monitoradas</div></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='kpi-card'><div class='kpi-val'>4.2</div><div class='kpi-lbl'>Média Geral (Score)</div></div>", unsafe_allow_html=True)
+        c4.markdown(f"<div class='kpi-card'><div class='kpi-val'>12</div><div class='kpi-lbl'>Alertas de Risco</div></div>", unsafe_allow_html=True)
         
-        st.markdown("### Empresas Ativas")
-        st.dataframe(pd.DataFrame(st.session_state.mock_companies).drop(columns=['Logo'], errors='ignore'), use_container_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Gráficos Robustos (Plotly)
+        g1, g2 = st.columns(2)
+        with g1:
+            st.subheader("Distribuição por Grau de Risco (NR-04)")
+            fig_pie = px.pie(df, names='risco', title='Empresas por Risco', color_discrete_sequence=px.colors.sequential.Teal)
+            st.plotly_chart(fig_pie, use_container_width=True)
+        
+        with g2:
+            st.subheader("Média de Saúde por Setor")
+            fig_bar = px.bar(df, x='setor', y='score', title='Índice HSE por Setor', color='score', color_continuous_scale='RdYlGn')
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-    # 2. CADASTRO & DIVULGAÇÃO
-    with tab2:
-        c_form, c_link = st.columns([1.5, 1])
-        with c_form:
-            st.subheader("Cadastrar Nova Empresa")
-            with st.form("new_company"):
-                nome = st.text_input("Razão Social")
-                c_a, c_b = st.columns(2)
-                with c_a:
-                    cod_id = st.text_input("Código de Acesso (ID)", placeholder="Ex: CLIENTE01")
-                    resp = st.text_input("Responsável Legal")
-                with c_b:
-                    risco = st.selectbox("Grau de Risco (NR-04)", [1, 2, 3, 4])
-                    logo = st.file_uploader("Logo da Empresa (Opcional)", type=['png', 'jpg'])
-                
-                if st.form_submit_button("💾 Salvar Cadastro"):
-                    new_c = {"id": cod_id, "Nome": nome, "Setor": "Novo", "Risco": risco, "Func": 0, "Logo": logo, "Resp": resp, "Score": 0, "FatorCritico": "-"}
-                    st.session_state.mock_companies.append(new_c)
-                    st.session_state.last_created = new_c
-                    st.success("Cadastro realizado!")
-                    st.rerun()
+    # --- PÁGINA: EMPRESAS ---
+    elif selected == "Empresas":
+        st.title("🏢 Gestão de Empresas")
         
-        with c_link:
-            st.subheader("Kit de Divulgação")
-            if 'last_created' in st.session_state:
-                comp = st.session_state.last_created
-                link = f"https://elo-nr01.app/?cod={comp['id']}"
-                
-                st.markdown(f"**Cliente:** {comp['Nome']}")
-                st.markdown(f"<div class='link-box'>{link}</div>", unsafe_allow_html=True)
-                
-                msg_zap = f"""Olá time {comp['Nome']}! 🌟
-A {NOME_PLATAFORMA} chegou para cuidarmos da nossa saúde mental.
-Participe da avaliação de riscos psicossociais (NR-01). É anônimo e seguro.
-Link: {link}"""
-                st.text_area("Texto para WhatsApp:", value=msg_zap, height=150)
-                
-                # QR Code Fake
-                qr = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(link)}"
-                st.image(qr, caption="QR Code para Murais")
-            else:
-                st.info("Cadastre uma empresa ao lado para gerar o kit.")
+        tab_list, tab_add = st.tabs(["Lista de Clientes", "Novo Cadastro & Links"])
+        
+        with tab_list:
+            st.dataframe(pd.DataFrame(st.session_state.companies_db), use_container_width=True)
+        
+        with tab_add:
+            c1, c2 = st.columns(2)
+            with c1:
+                st.subheader("Dados Cadastrais")
+                with st.form("new_company"):
+                    razao = st.text_input("Razão Social")
+                    cnpj = st.text_input("CNPJ")
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        cod = st.text_input("Código ID (Ex: CLI01)")
+                        cnae = st.text_input("CNAE Principal")
+                        risco = st.selectbox("Grau de Risco", [1, 2, 3, 4])
+                    with col_b:
+                        resp = st.text_input("Nome Responsável")
+                        email = st.text_input("E-mail Responsável")
+                        func = st.number_input("Nº Funcionários", min_value=1)
+                    
+                    if st.form_submit_button("Salvar Empresa"):
+                        new_data = {
+                            "id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", 
+                            "risco": risco, "func": func, "resp": resp, "email": email,
+                            "score": 0, "status": "Aguardando", "data": datetime.now().strftime("%d/%m/%Y")
+                        }
+                        st.session_state.companies_db.append(new_data)
+                        st.success("Empresa cadastrada com sucesso!")
+                        st.rerun()
 
-    # 3. RELATÓRIOS E PLANOS DE AÇÃO (A "Cereja do Bolo")
-    with tab3:
-        st.subheader("Gerador de Laudo Técnico")
-        empresa_nome = st.selectbox("Selecione o Cliente", [c['Nome'] for c in st.session_state.mock_companies])
-        empresa = next(c for c in st.session_state.mock_companies if c['Nome'] == empresa_nome)
-        
-        # Simulando análise de dados
-        fator_critico = empresa.get('Score', 3) < 3
-        nome_fator = empresa.get('FatorCritico', 'Demandas')
-        
-        col_res, col_plan = st.columns([1, 1])
-        
-        with col_res:
-            st.markdown("#### Diagnóstico Automático")
-            st.metric("Score Geral", f"{empresa.get('Score', 0)}/5.0", delta="-0.5" if fator_critico else "0.2")
-            if fator_critico:
-                st.error(f"⚠️ Atenção Prioritária: **{nome_fator}**")
-            else:
-                st.success("✅ Indicadores em Conformidade")
+            with c2:
+                st.subheader("Gerador de Acesso")
+                empresa_sel = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
+                empresa_obj = next(c for c in st.session_state.companies_db if c['razao'] == empresa_sel)
+                
+                link = f"https://elo-nr01.app/?cod={empresa_obj['id']}"
+                st.success(f"Link Ativo: {link}")
+                
+                qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(link)}"
+                c_qr, c_txt = st.columns([1,2])
+                c_qr.image(qr_url)
+                c_txt.info(f"Código ID: **{empresa_obj['id']}**\n\nEnvie este código ou o link para os colaboradores.")
 
-        with col_plan:
-            st.markdown("#### Construtor de Plano de Ação")
-            st.caption("Selecione as ações para incluir no relatório final:")
-            
-            # Carrega sugestões HSE
-            sugestoes = get_hse_actions(nome_fator)
-            acoes_selecionadas = []
-            
-            for i, acao in enumerate(sugestoes):
-                if st.checkbox(acao, value=True, key=f"act_{i}"):
-                    acoes_selecionadas.append(acao)
-            
-            custom_action = st.text_input("Adicionar Ação Personalizada (+):")
-            if custom_action:
-                acoes_selecionadas.append(custom_action)
+    # --- PÁGINA: ACESSOS (SOLICITADO POR CRIS) ---
+    elif selected == "Acessos":
+        st.title("🔐 Gestão de Administradores")
+        st.markdown("Gerencie quem tem acesso ao painel de consultoria da Pessin.")
+        
+        c_list, c_edit = st.columns(2)
+        with c_list:
+            st.subheader("Usuários Ativos")
+            df_users = pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Senha (Hash)'])
+            df_users['Senha (Hash)'] = "********" # Mascarar senha
+            st.table(df_users)
+        
+        with c_edit:
+            st.subheader("Adicionar / Alterar Senha")
+            with st.form("user_mgmt"):
+                u_login = st.text_input("Login (E-mail ou Usuário)")
+                u_pass = st.text_input("Nova Senha", type="password")
+                tipo = st.radio("Ação", ["Criar Novo", "Alterar Senha"])
+                
+                if st.form_submit_button("Executar"):
+                    if u_login and u_pass:
+                        st.session_state.users_db[u_login] = u_pass
+                        st.success(f"Usuário {u_login} atualizado com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Preencha todos os campos.")
 
-        if st.button("📄 Gerar Relatório PDF (Visualização)"):
+    # --- PÁGINA: RELATÓRIOS ---
+    elif selected == "Relatórios":
+        st.title("📑 Emissão de Laudos Técnicos")
+        
+        col_sel, col_act = st.columns([3, 1])
+        with col_sel:
+            empresa_rel = st.selectbox("Selecione o Cliente para o Laudo", [c['razao'] for c in st.session_state.companies_db])
+        
+        empresa_obj = next(c for c in st.session_state.companies_db if c['razao'] == empresa_rel)
+        
+        # Simulação de dados para o relatório
+        fator_critico = "Demandas Psicológicas" if empresa_obj['score'] < 3 else "Nenhum"
+        
+        with st.expander("🛠️ Personalizar Plano de Ação", expanded=False):
+            st.write(f"Fator Crítico Identificado: **{fator_critico}**")
+            acoes = st.multiselect("Selecione as ações recomendadas:", 
+                                   ["Revisão de Job Description", "Treinamento de Liderança", "Programa de Pausas Ativas", "Mediação de Conflitos"],
+                                   default=["Revisão de Job Description", "Treinamento de Liderança"])
+            obs_consultor = st.text_area("Observações Técnicas da Consultora (Cris):", "A empresa apresenta boa adesão, porém necessita ajustes pontuais em cargas horárias.")
+
+        if st.button("🖨️ Gerar Visualização de Impressão (A4)"):
+            # --- RENDERIZAÇÃO DO RELATÓRIO TIPO "PAPEL" ---
             st.markdown("---")
-            # --- ÁREA IMPRIMÍVEL ---
             with st.container():
-                c_head1, c_head2 = st.columns([1, 4])
-                with c_head1:
-                    # Tenta mostrar logo do cliente, senão mostra SVG Elo
-                    if empresa['Logo']: st.image(empresa['Logo'], width=100)
-                    else: show_logo_svg(150)
-                with c_head2:
-                    st.markdown(f"### LAUDO TÉCNICO DE RISCOS PSICOSSOCIAIS")
-                    st.markdown(f"**Empresa:** {empresa['Nome']} | **Data:** {datetime.now().strftime('%d/%m/%Y')}")
+                st.markdown(f"""
+                <div class="a4-paper">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid {COR_PRIMARIA}; padding-bottom:10px; margin-bottom:20px;">
+                        <div>{render_svg_logo(120)}</div>
+                        <div style="text-align:right;">
+                            <h3 style="margin:0; color:{COR_PRIMARIA}">LAUDO TÉCNICO NR-01</h3>
+                            <small>Ref: Riscos Psicossociais</small>
+                        </div>
+                    </div>
+                    
+                    <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:20px;">
+                        <strong>Cliente:</strong> {empresa_obj['razao']}<br>
+                        <strong>CNPJ:</strong> {empresa_obj['cnpj']} | <strong>Risco:</strong> {empresa_obj['risco']}<br>
+                        <strong>Data da Emissão:</strong> {datetime.now().strftime('%d/%m/%Y')}
+                    </div>
+                    
+                    <h4>1. Contexto Legal (NR-01)</h4>
+                    <p style="text-align:justify; font-style:italic; font-size:0.9em; color:#555;">
+                        "1.5.3.1.1 O gerenciamento de riscos ocupacionais deve constituir um Programa de Gerenciamento de Riscos (PGR) 
+                        e deve incluir [...] os fatores ergonômicos e psicossociais."
+                    </p>
+                    
+                    <h4>2. Diagnóstico Executivo (Metodologia HSE)</h4>
+                    <p>Após análise dos dados coletados, o Score Global de Saúde Mental da organização é de <strong>{empresa_obj['score']}/5.0</strong>.</p>
+                    <p><strong>Fator de Atenção:</strong> {fator_critico}</p>
+                    
+                    <h4>3. Plano de Ação Recomendado</h4>
+                    <ul>
+                        {''.join([f'<li>{a}</li>' for a in acoes])}
+                    </ul>
+                    
+                    <h4>4. Parecer Técnico</h4>
+                    <p>{obs_consultor}</p>
+                    
+                    <div style="margin-top:80px; display:flex; justify-content:space-between;">
+                        <div style="text-align:center; width:45%; border-top:1px solid #000; padding-top:10px;">
+                            <strong>{empresa_obj['resp']}</strong><br>Responsável Legal
+                        </div>
+                        <div style="text-align:center; width:45%; border-top:1px solid #000; padding-top:10px;">
+                            <strong>Cristiane Cardoso Lima</strong><br>Consultora Responsável (Pessin)
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            st.info("Para salvar: Pressione Ctrl+P > Destino: Salvar como PDF.")
 
-                st.markdown("#### 1. Fundamentação Legal")
-                st.markdown("""
-                <div class='citation-box'>
-                "1.5.3.1.1 O gerenciamento de riscos ocupacionais deve constituir um Programa de Gerenciamento de Riscos (PGR) 
-                e deve incluir [...] os fatores ergonômicos e psicossociais." (NR-01)
-                </div>""", unsafe_allow_html=True)
-                
-                st.markdown(f"#### 2. Análise do Fator Crítico: {nome_fator}")
-                st.write(f"A avaliação identificou que o fator '{nome_fator}' apresenta riscos à saúde dos colaboradores, exigindo intervenção imediata conforme metodologia HSE.")
-
-                st.markdown("#### 3. Plano de Ação Recomendado")
-                st.markdown("<div class='action-plan'>", unsafe_allow_html=True)
-                for acao in acoes_selecionadas:
-                    st.markdown(f"- {acao}")
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-                st.markdown("<br><br>", unsafe_allow_html=True)
-                
-                s1, s2 = st.columns(2)
-                with s1:
-                    st.markdown("<div class='signature-line'></div>", unsafe_allow_html=True)
-                    st.markdown(f"<center><b>{empresa['Resp']}</b><br>Responsável Legal</center>", unsafe_allow_html=True)
-                with s2:
-                    st.markdown("<div class='signature-line'></div>", unsafe_allow_html=True)
-                    st.markdown(f"<center><b>Cristiane Cardoso Lima</b><br>Consultora Responsável (Pessin)</center>", unsafe_allow_html=True)
-            
-            st.info("Pressione Ctrl+P para salvar como PDF.")
-
-# --- TELA 3: FORMULÁRIO COLABORADOR ---
-def show_survey():
+def user_survey():
+    if 'current_company' not in st.session_state: st.rerun()
     comp = st.session_state.current_company
     
-    # Header White Label
-    c_back, c_logo = st.columns([6, 1])
-    with c_back:
-        if st.button("← Sair"): 
-            st.session_state.page = 'login'
-            st.session_state.current_company = None
-            st.rerun()
-    with c_logo:
-        if comp['Logo']: st.image(comp['Logo'], width=100)
+    # Header Limpo
+    st.markdown(f"""
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:white; border-radius:10px; margin-bottom:20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div><small>Empresa:</small><br><strong>{comp['razao']}</strong></div>
+        <div>{render_svg_logo(100)}</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    st.markdown(f"### Avaliação de Clima | {comp['Nome']}")
+    st.info("🔒 Seus dados são anônimos e protegidos. A empresa recebe apenas estatísticas consolidadas.")
     
-    # Citação NR-01 para Colaborador
-    st.markdown("""
-    <div class='nr01-citation'>
-    <b>🛡️ Segurança Legal (NR-01):</b> Esta pesquisa atende à norma regulamentadora que exige o cuidado com a saúde mental no trabalho.
-    Seus dados são criptografados e confidenciais.
-    </div>""", unsafe_allow_html=True)
-    
-    # Perguntas com Tooltips
-    questions = [
-        {"q": "Tenho prazos impossíveis?", "cat": "Demandas", "tip": "Ex: Tarefas chegam às 17h para entregar às 18h."},
-        {"q": "Tenho autonomia no meu trabalho?", "cat": "Controle", "tip": "Ex: Você pode decidir a ordem das suas tarefas."},
-        {"q": "Recebo apoio do meu gestor?", "cat": "Apoio", "tip": "Ex: Seu chefe ajuda quando você tem dificuldades?"}
-    ]
-    
-    with st.form("survey_form"):
-        for q in questions:
-            st.markdown(f"**{q['q']}**")
-            st.select_slider("Frequência", options=["Nunca", "Às vezes", "Sempre"], key=q['q'], help=q['tip'])
-            st.markdown("---")
-        
-        if st.form_submit_button("Enviar Avaliação"):
-            st.balloons()
-            st.success("Respostas enviadas com sucesso! Obrigado por fortalecer o Elo.")
-            time.sleep(3)
-            st.session_state.page = 'login'
-            st.rerun()
+    with st.expander("ℹ️ Instruções de Preenchimento", expanded=False):
+        st.write("Responda pensando nos últimos 6 meses. Não existem respostas certas ou erradas.")
 
-# --- ROTEADOR ---
-if st.session_state.page == 'login': show_login()
-elif st.session_state.page == 'admin': show_admin()
-elif st.session_state.page == 'survey': show_survey()
+    # Formulário Estilizado
+    with st.form("survey"):
+        st.markdown("### 1. Demandas do Trabalho")
+        st.markdown("**Tenho prazos impossíveis de cumprir?**")
+        st.select_slider("", options=["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], key="q1")
+        
+        st.markdown("---")
+        st.markdown("### 2. Controle e Autonomia")
+        st.markdown("**Posso decidir quando fazer uma pausa?**")
+        st.select_slider("", options=["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], key="q2")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.form_submit_button("✅ Enviar Respostas"):
+            st.balloons()
+            st.success("Obrigado! Sua participação fortalece nosso elo.")
+            time.sleep(3)
+            st.session_state.logged_in = False
+            st.rerun()
+            
+    if st.button("Sair / Cancelar"): logout()
+
+# --- 6. ROTEADOR DE PÁGINAS ---
+if not st.session_state.logged_in:
+    login_screen()
+else:
+    if st.session_state.user_role == 'admin':
+        admin_dashboard()
+    else:
+        user_survey()
