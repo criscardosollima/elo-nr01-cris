@@ -59,8 +59,17 @@ st.markdown(f"""
     /* Containers */
     .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
 
-    /* Estilo do Slider no Formulário */
-    div[data-baseweb="slider"] {{ margin-top: 20px; margin-bottom: 20px; }}
+    /* Caixa de Segurança (Verde Intenso) */
+    .security-box {{
+        background-color: #d4edda; 
+        border: 1px solid #c3e6cb; 
+        border-left: 6px solid #28a745;
+        padding: 20px; 
+        border-radius: 8px; 
+        color: #155724; 
+        margin-bottom: 25px; 
+        font-family: 'Inter', sans-serif;
+    }}
     
     /* Relatório A4 */
     .a4-paper {{ 
@@ -73,6 +82,9 @@ st.markdown(f"""
     .rep-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }}
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
+
+    /* Slider Customizado */
+    div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -110,8 +122,8 @@ if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
             {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "rev": True, "help": "Ex: Receber tarefas às 17h para entregar às 18h."},
-            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Hora extra constante."},
-            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Sem tempo para respirar."},
+            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Sentir que precisa fazer hora extra sempre para dar conta."},
+            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
             {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
             {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
             {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
@@ -153,7 +165,7 @@ if 'hse_questions' not in st.session_state:
             {"id": 17, "q": "Entendo meu encaixe na empresa?", "rev": False, "help": "Ex: Ver sentido no que faz para a empresa."}
         ],
         "Mudança": [
-            {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Espaço para tirar dúvidas sobre novidades."},
+            {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Tirar dúvidas."},
             {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
             {"id": 32, "q": "Mudanças são claras?", "rev": False, "help": "Ex: Comunicação transparente sobre o 'novo jeito'."}
         ]
@@ -358,41 +370,38 @@ def admin_dashboard():
 
             html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
-            # HTML COM TEXTWRAP.DEDENT PARA REMOVER ESPAÇOS E EVITAR ERRO DE CÓDIGO NA TELA
+            # ESTE É O BLOCO HTML CORRIGIDO. REMOVIDA INDENTAÇÃO PARA NÃO DAR ERRO.
             raw_html = f"""
 <div class="a4-paper">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
-        <div>{logo_html}</div>
-        <div style="text-align:right;">
-            <div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div>
-            <div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div>
-        </div>
-    </div>
-    <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
-        {logo_cliente_html}
-        <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
-        <div style="font-size:9px;">CNPJ: {empresa['cnpj']} | Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
-    </div>
-    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. OBJETIVO E METODOLOGIA</div>
-    <p style="text-align:justify; margin:0; font-size:10px;">Este relatório tem como objetivo identificar os fatores de risco psicossocial no ambiente de trabalho, utilizando a ferramenta <strong>HSE Management Standards Indicator Tool</strong>, atendendo às exigências da NR-01. A metodologia avalia 7 dimensões: Demanda, Controle, Suporte (Gestor/Pares), Relacionamentos, Papel e Mudança.</p>
-    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-top:15px; margin-bottom:5px;">2. DIAGNÓSTICO GERAL (DIMENSÕES)</div>
-    <div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
-    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. RAIO-X DETALHADO (35 PERGUNTAS)</div>
-    <div style="background:white; border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:15px; column-count:2; column-gap:20px; font-size:9px;">{html_raio_x}</div>
-    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">4. PLANO DE AÇÃO ESTRATÉGICO</div>
-    <table class="rep-table" style="margin-bottom:15px;">
-        <thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
-        <tbody>{html_acoes}</tbody>
-    </table>
-    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">5. CONCLUSÃO TÉCNICA</div>
-    <p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
-    <div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
-        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
-        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
-    </div>
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
+<div>{logo_html}</div>
+<div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div><div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div></div>
+</div>
+<div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
+{logo_cliente_html}
+<div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
+<div style="font-size:9px;">CNPJ: {empresa['cnpj']} | Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
+</div>
+<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. OBJETIVO E METODOLOGIA</div>
+<p style="text-align:justify; margin:0; font-size:10px;">Este relatório tem como objetivo identificar os fatores de risco psicossocial no ambiente de trabalho, utilizando a ferramenta <strong>HSE Management Standards Indicator Tool</strong>, atendendo às exigências da NR-01. A metodologia avalia 7 dimensões: Demanda, Controle, Suporte (Gestor/Pares), Relacionamentos, Papel e Mudança.</p>
+<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-top:15px; margin-bottom:5px;">2. DIAGNÓSTICO GERAL (DIMENSÕES)</div>
+<div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
+<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. RAIO-X DETALHADO (35 PERGUNTAS)</div>
+<div style="background:white; border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:15px; column-count:2; column-gap:20px; font-size:9px;">{html_raio_x}</div>
+<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">4. PLANO DE AÇÃO ESTRATÉGICO</div>
+<table class="rep-table" style="margin-bottom:15px;">
+<thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
+<tbody>{html_acoes}</tbody>
+</table>
+<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">5. CONCLUSÃO TÉCNICA</div>
+<p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
+<div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
+<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
+<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
+</div>
 </div>
 """
-            # RENDERIZAÇÃO SEGURA (SEM INDENTAÇÃO)
+            # Renderização segura
             st.markdown(textwrap.dedent(raw_html), unsafe_allow_html=True)
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
@@ -459,7 +468,7 @@ def survey_screen():
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
     
-    # MENSAGEM DE SEGURANÇA E VERIFICAÇÃO
+    # MENSAGEM DE SEGURANÇA E VERIFICAÇÃO (BOX VERDE)
     st.markdown("""
     <div class="security-box">
         <strong>🔒 AVALIAÇÃO VERIFICADA E SEGURA</strong><br>
@@ -484,16 +493,14 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    st.markdown(f"##### {q['q']}")
-                    # Tooltip de ajuda na legenda
-                    st.caption(f"ℹ️ {q['help']}")
-                    # USANDO SLIDER AGORA
+                    # SLIDER DE BOLINHAS (SELECT SLIDER) COM PERGUNTA EM CIMA E EXPLICAÇÃO NO TOOLTIP
                     options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
+                    
                     st.select_slider(
-                        label="Selecione:",
+                        label=f"**{q['q']}**",
                         options=options,
                         key=f"q_{q['id']}",
-                        label_visibility="collapsed"
+                        help=f"{q['help']}" # EXPLICAÇÃO NA INTERROGAÇÃO
                     )
                     st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
         
