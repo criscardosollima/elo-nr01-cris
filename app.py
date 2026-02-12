@@ -9,7 +9,6 @@ import urllib.request
 from streamlit_option_menu import option_menu
 import textwrap
 import random
-import hashlib
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 if 'platform_config' not in st.session_state:
@@ -60,24 +59,9 @@ st.markdown(f"""
     /* Containers */
     .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
 
-    /* Radio Buttons Melhorados */
-    div[role="radiogroup"] > label > div:first-of-type {{
-        background-color: #ffffff; border: 1px solid #ced4da; border-radius: 6px; padding: 10px 15px; text-align: center; font-size: 0.9em;
-    }}
-    div[role="radiogroup"] > label > div:first-of-type:hover {{
-        border-color: {COR_SECUNDARIA}; background-color: #e0f2f1; cursor: pointer;
-    }}
-    /* Quando selecionado */
-    div[role="radiogroup"] > label[data-checked="true"] > div:first-of-type {{
-        background-color: {COR_SECUNDARIA}; color: white; border-color: {COR_SECUNDARIA};
-    }}
+    /* Estilo do Slider no Formulário */
+    div[data-baseweb="slider"] {{ margin-top: 20px; margin-bottom: 20px; }}
     
-    /* Mensagem de Segurança */
-    .security-box {{
-        background-color: #e8f5e9; border: 1px solid #c8e6c9; border-left: 5px solid #2e7d32;
-        padding: 15px; border-radius: 5px; color: #1b5e20; margin-bottom: 20px; font-size: 0.9em;
-    }}
-
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
@@ -126,8 +110,8 @@ if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
             {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "rev": True, "help": "Ex: Receber tarefas às 17h para entregar às 18h."},
-            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Sentir que precisa fazer hora extra sempre para dar conta."},
-            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
+            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Hora extra constante."},
+            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Sem tempo para respirar."},
             {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
             {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
             {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
@@ -374,6 +358,7 @@ def admin_dashboard():
 
             html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
+            # HTML COM TEXTWRAP.DEDENT PARA REMOVER ESPAÇOS E EVITAR ERRO DE CÓDIGO NA TELA
             raw_html = f"""
 <div class="a4-paper">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
@@ -407,6 +392,7 @@ def admin_dashboard():
     </div>
 </div>
 """
+            # RENDERIZAÇÃO SEGURA (SEM INDENTAÇÃO)
             st.markdown(textwrap.dedent(raw_html), unsafe_allow_html=True)
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
@@ -498,13 +484,16 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    # TÍTULO DA PERGUNTA NO LABEL DO RADIO PARA FICAR LIMPO E COM ICONE DE AJUDA
-                    st.radio(
-                        label=f"**{q['q']}**", 
-                        options=["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"],
-                        key=f"q_{q['id']}", 
-                        horizontal=True, 
-                        help=f"{q['help']}" # ÍCONE DE INTERROGAÇÃO AQUI
+                    st.markdown(f"##### {q['q']}")
+                    # Tooltip de ajuda na legenda
+                    st.caption(f"ℹ️ {q['help']}")
+                    # USANDO SLIDER AGORA
+                    options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
+                    st.select_slider(
+                        label="Selecione:",
+                        options=options,
+                        key=f"q_{q['id']}",
+                        label_visibility="collapsed"
                     )
                     st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
         
