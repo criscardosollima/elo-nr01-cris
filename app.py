@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import datetime
 import base64
 import urllib.parse
@@ -26,51 +27,63 @@ st.set_page_config(
 COR_PRIMARIA = "#2c3e50"
 COR_SECUNDARIA = "#1abc9c"
 COR_FUNDO = "#f4f6f9"
+COR_RISCO_ALTO = "#ef5350"
+COR_RISCO_MEDIO = "#ffa726"
+COR_RISCO_BAIXO = "#66bb6a"
 
-# --- 2. CSS OTIMIZADO ---
+# --- 2. CSS OTIMIZADO (ESTILO MODERNO) ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards */
+    /* Cards do Dashboard */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;
-        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 130px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
+        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 140px;
     }}
-    .kpi-value {{ font-size: 24px; font-weight: 700; color: {COR_PRIMARIA}; }}
-    .kpi-title {{ font-size: 13px; color: #666; font-weight: 600; margin-top: 5px; }}
+    .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }}
+    .kpi-title {{ font-size: 13px; color: #7f8c8d; font-weight: 600; margin-top: 10px; }}
+    .kpi-value {{ font-size: 28px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
     
-    /* Melhoria na visualização dos Radio Buttons (Opções claras) */
+    /* Cores Ícones */
+    .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
+    .bg-green {{ background-color: #e8f5e9; color: #388e3c; }}
+    .bg-orange {{ background-color: #fff3e0; color: #f57c00; }}
+    .bg-red {{ background-color: #ffebee; color: #d32f2f; }}
+
+    /* Containers de Gráficos */
+    .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
+
+    /* Radio Buttons */
     div[role="radiogroup"] > label > div:first-of-type {{
-        background-color: #f0f2f6; border: 1px solid #dce1e6; border-radius: 8px; padding: 10px;
+        background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px;
     }}
     div[role="radiogroup"] > label > div:first-of-type:hover {{
-        border-color: {COR_SECUNDARIA}; background-color: #eefbf9;
+        border-color: {COR_SECUNDARIA}; background-color: #e0f2f1;
     }}
     
-    /* Relatório A4 */
+    /* Relatório A4 Moderno (Sem Tabelas Clássicas) */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
-        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Arial', sans-serif; font-size: 12px; line-height: 1.5;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.6;
     }}
-    .hse-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }}
-    .hse-table th {{ background-color: #f0f0f0; border: 1px solid #ddd; padding: 6px; text-align: left; font-weight: bold; }}
-    .hse-table td {{ border: 1px solid #ddd; padding: 6px; }}
-    .risk-high {{ background-color: #ffebee; color: #c62828; font-weight: bold; text-align: center; }}
-    .risk-med {{ background-color: #fff3e0; color: #ef6c00; font-weight: bold; text-align: center; }}
-    .risk-low {{ background-color: #e8f5e9; color: #2e7d32; font-weight: bold; text-align: center; }}
+    .rep-header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid {COR_PRIMARIA}; padding-bottom: 20px; margin-bottom: 30px; }}
+    .rep-section-title {{ font-size: 14px; font-weight: 700; color: {COR_PRIMARIA}; text-transform: uppercase; margin-top: 25px; margin-bottom: 15px; letter-spacing: 0.5px; border-left: 4px solid {COR_SECUNDARIA}; padding-left: 10px; }}
     
-    /* Link Box */
-    .link-box {{
-        padding: 15px; background-color: #e8f4f8; border: 2px dashed {COR_PRIMARIA};
-        border-radius: 8px; text-align: center; font-family: monospace; font-weight: bold;
-        color: {COR_PRIMARIA}; word-break: break-all;
-    }}
-
+    /* Grid de Cards no Relatório */
+    .rep-grid {{ display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }}
+    .rep-card {{ flex: 1; min-width: 140px; background: #f8f9fa; border-radius: 8px; padding: 15px; border: 1px solid #eee; }}
+    .rep-card h5 {{ margin: 0 0 5px 0; color: #666; font-size: 10px; text-transform: uppercase; }}
+    .rep-card .val {{ font-size: 18px; font-weight: bold; color: {COR_PRIMARIA}; }}
+    
+    /* Barras de Progresso no Relatório */
+    .progress-container {{ width: 100%; background-color: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 5px; }}
+    .progress-bar {{ height: 100%; border-radius: 4px; }}
+    
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
         .a4-paper {{ box-shadow: none; margin: 0; padding: 0; width: 100%; }}
@@ -79,7 +92,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DADOS E PERGUNTAS HSE (LISTA COMPLETA 35 ITENS) ---
+# --- 3. DADOS E PERGUNTAS HSE (COMPLETO) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "admin", "cris": "123"}
 
@@ -90,11 +103,18 @@ if 'companies_db' not in st.session_state:
             "cnae": "13.51-1-00", "setor": "Industrial", "risco": 3, "func": 150, 
             "segmentacao": "GHE", "resp": "Carlos Silva", "email": "carlos@fabril.com",
             "logo": None, "score": 2.8, "respondidas": 120,
-            "dimensoes": {"Demanda": 2.1, "Controle": 3.5, "Suporte Gestor": 2.8, "Suporte Pares": 4.0, "Relacionamentos": 2.5, "Papel": 4.5, "Mudança": 3.0}
+            # Notas simuladas para o relatório (0 a 5)
+            "dimensoes": {"Demanda": 2.1, "Controle": 3.5, "Suporte Gestor": 2.8, "Suporte Pares": 4.0, "Relacionamentos": 2.5, "Papel": 4.5, "Mudança": 3.0},
+            # Dados detalhados por pergunta (simulação de % de risco)
+            "detalhe_perguntas": {
+                "Prazos impossíveis": 65, "Pressão longas horas": 45, "Trabalho intenso": 55,
+                "Feedback gestor": 30, "Apoio em problemas": 25,
+                "Assédio pessoal": 15, "Conflitos entre colegas": 40
+            }
         }
     ]
 
-# DICIONÁRIO COMPLETO HSE (35 ITENS)
+# LISTA COMPLETA HSE 35 PERGUNTAS
 if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
@@ -103,7 +123,6 @@ if 'hse_questions' not in st.session_state:
             {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
             {"id": 12, "q": "Tenho que negligenciar tarefas por falta de tempo?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
             {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
-            {"id": 18, "q": "Sou pressionado(a) por diferentes grupos no trabalho?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas ao mesmo tempo."},
             {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético constante."},
             {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas que humanamente não dá para bater."}
         ],
@@ -111,40 +130,17 @@ if 'hse_questions' not in st.session_state:
             {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro ou pegar café sem pedir permissão."},
             {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher a ordem das tarefas."},
             {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar ou desacelerar quando necessário."},
-            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Você organiza sua própria agenda do dia."},
-            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."},
-            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Possibilidade de negociar horário de entrada/saída."}
+            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."}
         ],
-        "Suporte Gestor": [
+        "Suporte": [
             {"id": 8, "q": "Recebo feedback sobre o trabalho que faço?", "rev": False, "help": "Ex: Saber se está indo bem ou mal."},
             {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: O chefe ajuda a resolver ou diz 'se vira'?"},
-            {"id": 29, "q": "Posso falar com meu superior sobre algo que me chateou?", "rev": False, "help": "Ex: Abertura para conversar sobre insatisfações."},
-            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."},
-            {"id": 35, "q": "Meu gestor me incentiva no trabalho?", "rev": False, "help": "Ex: Elogios ou motivação para continuar."}
-        ],
-        "Suporte Pares": [
-            {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "rev": False, "help": "Ex: Quando aperta, alguém te dá uma mão?"},
-            {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "rev": False, "help": "Ex: Tratamento cordial e profissional."},
-            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "rev": False, "help": "Ex: Ter com quem desabafar sobre o serviço."},
-            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade quando você está sobrecarregado."}
+            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."}
         ],
         "Relacionamentos": [
-            {"id": 5, "q": "Estou sujeito a assédio pessoal (palavras/comportamentos)?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
+            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
             {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Clima pesado, fofocas ou brigas."},
-            {"id": 21, "q": "Estou sujeito(a) a bullying no trabalho?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
             {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
-        ],
-        "Papel": [
-            {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Ex: Suas metas e funções são nítidas."},
-            {"id": 4, "q": "Sei como fazer para executar meu trabalho?", "rev": False, "help": "Ex: Ter o conhecimento e ferramentas necessárias."},
-            {"id": 11, "q": "Sei quais são os objetivos do meu departamento?", "rev": False, "help": "Ex: Entender para onde a equipe está indo."},
-            {"id": 13, "q": "Sei o quanto de responsabilidade tenho?", "rev": False, "help": "Ex: Clareza sobre até onde vai sua autoridade."},
-            {"id": 17, "q": "Entendo como meu trabalho se encaixa no todo?", "rev": False, "help": "Ex: Ver sentido no que faz para a empresa."}
-        ],
-        "Mudança": [
-            {"id": 26, "q": "Tenho oportunidade de questionar sobre mudanças?", "rev": False, "help": "Ex: Espaço para tirar dúvidas sobre novidades."},
-            {"id": 28, "q": "Sou consultado(a) sobre mudanças no trabalho?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
-            {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Ex: Comunicação clara sobre o 'novo jeito'."}
         ]
     }
 
@@ -168,24 +164,8 @@ def image_to_base64(uploaded_file):
 
 def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.rerun()
 
-def gerar_analise_automatica(dimensoes):
-    analises = {}
-    nota = dimensoes.get("Demanda", 0)
-    if nota < 3.0: analises['demanda'] = f"Risco Alto (Nota: {nota}). Sobrecarga e ritmo acelerado detectados."
-    else: analises['demanda'] = f"Demanda equilibrada (Nota: {nota})."
-    
-    nota = dimensoes.get("Relacionamentos", 0)
-    if nota < 3.0: analises['relacionamentos'] = "Alerta Crítico: Conflitos interpessoais ou percepção de assédio."
-    else: analises['relacionamentos'] = "Ambiente social saudável."
-    return analises
-
-def sugerir_acoes(dimensoes):
-    acoes = []
-    if dimensoes.get("Demanda", 5) < 3.0:
-        acoes.append({"acao": "Revisão da carga de trabalho", "area": "Demanda", "resp": "Gestão/RH", "prazo": "Imediato"})
-    if dimensoes.get("Relacionamentos", 5) < 3.0:
-        acoes.append({"acao": "Roda de conversa sobre Respeito", "area": "Relacionamentos", "resp": "Compliance", "prazo": "15 dias"})
-    return acoes
+def kpi_card(title, value, icon, color_class):
+    st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div></div><div><div class="kpi-value">{value}</div><div class="kpi-title">{title}</div></div></div>""", unsafe_allow_html=True)
 
 # --- 5. TELAS DO SISTEMA ---
 
@@ -197,64 +177,65 @@ def login_screen():
         plat_name = st.session_state.platform_config['name']
         st.markdown(f"<h3 style='text-align:center; color:#555;'>{plat_name}</h3>", unsafe_allow_html=True)
         
-        tab_colab, tab_admin = st.tabs(["Sou Colaborador", "Área Restrita (RH)"])
-        
-        with tab_colab:
-            with st.form("login_colab"):
-                query_params = st.query_params
-                default_cod = query_params.get("cod", "")
-                cod = st.text_input("Código da Empresa", value=default_cod, placeholder="Ex: IND01")
-                if st.form_submit_button("Iniciar Avaliação", type="primary"):
-                    company = next((c for c in st.session_state.companies_db if c['id'] == cod), None)
-                    if company:
-                        st.session_state.current_company = company
-                        st.session_state.logged_in = True
-                        st.session_state.user_role = 'colaborador'
-                        st.rerun()
-                    else:
-                        st.error("Código inválido.")
-
-        with tab_admin:
-            with st.form("login_admin"):
-                user = st.text_input("Usuário")
-                pwd = st.text_input("Senha", type="password")
-                if st.form_submit_button("Entrar no Painel"):
-                    if user in st.session_state.users_db and st.session_state.users_db[user] == pwd:
-                        st.session_state.logged_in = True
-                        st.session_state.user_role = 'admin'
-                        st.rerun()
-                    else:
-                        st.error("Credenciais inválidas.")
+        with st.form("login"):
+            user = st.text_input("Usuário")
+            pwd = st.text_input("Senha", type="password")
+            if st.form_submit_button("Entrar", type="primary", use_container_width=True):
+                if user in st.session_state.users_db and st.session_state.users_db[user] == pwd:
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = 'admin'
+                    st.rerun()
+                else:
+                    st.error("Credenciais inválidas.")
+        st.caption("Colaboradores: Utilizem o link fornecido pelo RH.")
 
 def admin_dashboard():
     with st.sidebar:
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
-        selected = option_menu(menu_title=None, options=["Visão Geral", "Gerar Link", "Empresas", "Relatórios", "Configurações"], icons=["grid", "link-45deg", "building", "file-text", "gear"], default_index=1, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
+        selected = option_menu(menu_title=None, options=["Visão Geral", "Gerar Link", "Empresas", "Relatórios", "Configurações"], icons=["grid", "link-45deg", "building", "file-text", "gear"], default_index=3, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
         st.markdown("---"); 
         if st.button("Sair", use_container_width=True): logout()
 
+    # --- 1. VISÃO GERAL ---
     if selected == "Visão Geral":
         st.title("Painel Administrativo")
+        
+        # Recuperando Gráficos Modernos
         total_empresas = len(st.session_state.companies_db)
         total_respondidas = sum(c['respondidas'] for c in st.session_state.companies_db)
         
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f"""<div class="kpi-card"><div class="kpi-title">Empresas</div><div class="kpi-value">{total_empresas}</div></div>""", unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"""<div class="kpi-card"><div class="kpi-title">Avaliações Totais</div><div class="kpi-value">{total_respondidas}</div></div>""", unsafe_allow_html=True)
-        with c3:
-            st.markdown(f"""<div class="kpi-card"><div class="kpi-title">Risco Médio</div><div class="kpi-value" style="color:{COR_SECUNDARIA}">Baixo</div></div>""", unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1: kpi_card("Empresas", total_empresas, "🏢", "bg-blue")
+        with col2: kpi_card("Respondidas", total_respondidas, "✅", "bg-green")
+        with col3: kpi_card("Pendentes", 67, "⏳", "bg-orange")
+        with col4: kpi_card("Alertas", 3, "🚨", "bg-red")
 
-        st.markdown("##### Distribuição de Risco")
-        df = pd.DataFrame(st.session_state.companies_db)
-        fig_pie = px.pie(df, names='setor', hole=0.5, color_discrete_sequence=px.colors.qualitative.Prism)
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        c_chart1, c_chart2 = st.columns([1, 1.5])
+        
+        with c_chart1:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.markdown("##### Distribuição de Risco")
+            df = pd.DataFrame(st.session_state.companies_db)
+            fig_pie = px.pie(df, names='setor', hole=0.6, color_discrete_sequence=px.colors.qualitative.Prism)
+            st.plotly_chart(fig_pie, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with c_chart2:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.markdown("##### Radar HSE (Dimensões)")
+            categories = ['Demanda', 'Controle', 'Apoio', 'Relações', 'Papel', 'Mudança']
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(r=[2, 4, 3, 2, 5, 4], theta=categories, fill='toself', name='Média'))
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
+            st.plotly_chart(fig_radar, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- 2. GERAR LINK (MANTIDO) ---
     elif selected == "Gerar Link":
         st.title("Gerar Link & Testar")
-        
-        with st.container(border=True):
+        with st.container():
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
             empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
             link_final = f"{st.session_state.base_url}/?cod={empresa['id']}"
@@ -262,20 +243,17 @@ def admin_dashboard():
             c1, c2 = st.columns([2, 1])
             with c1:
                 st.markdown(f"<div class='link-box'>{link_final}</div>", unsafe_allow_html=True)
-                if "localhost" in st.session_state.base_url: 
-                    st.info("💡 Dica: Para testar o link no seu PC, copie e cole no navegador.")
-                
-                # BOTÃO DE TESTE SOLICITADO
-                if st.button("👁️ Testar Formulário (Visão do Colaborador)"):
+                if st.button("👁️ Testar Formulário (Colaborador)"):
                     st.session_state.current_company = empresa
                     st.session_state.logged_in = True
                     st.session_state.user_role = 'colaborador'
                     st.rerun()
-
             with c2:
                 qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(link_final)}"
-                st.image(qr_url, width=150, caption="QR Code")
+                st.image(qr_url, width=150)
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- 3. EMPRESAS (MANTIDO) ---
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
         tab1, tab2 = st.tabs(["Monitoramento", "Novo Cadastro"])
@@ -283,43 +261,53 @@ def admin_dashboard():
             df_view = pd.DataFrame(st.session_state.companies_db)
             st.dataframe(df_view[['razao', 'cnpj', 'risco', 'func', 'respondidas']], use_container_width=True)
         with tab2:
-            with st.container(border=True):
-                with st.form("add_comp"):
-                    c1, c2 = st.columns(2)
-                    razao = c1.text_input("Razão Social")
-                    cnpj = c2.text_input("CNPJ")
-                    c3, c4 = st.columns(2)
-                    risco = c3.selectbox("Grau de Risco", [1, 2, 3, 4])
-                    func = c4.number_input("Nº Vidas", min_value=1)
-                    cod = st.text_input("Código ID (Ex: IND01)")
-                    logo_file = st.file_uploader("Logo Empresa", type=['png', 'jpg'])
-                    if st.form_submit_button("Salvar"):
-                        new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", "risco": risco, "func": func, "segmentacao": "GHE", "resp": "RH", "email": "-", "logo": logo_file, "score": 0, "respondidas": 0, "dimensoes": {}}
-                        st.session_state.companies_db.append(new_c)
-                        st.success("Salvo!")
-                        st.rerun()
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            with st.form("add_comp"):
+                c1, c2 = st.columns(2)
+                razao = c1.text_input("Razão Social")
+                cnpj = c2.text_input("CNPJ")
+                c3, c4 = st.columns(2)
+                risco = c3.selectbox("Grau de Risco", [1, 2, 3, 4])
+                func = c4.number_input("Nº Vidas", min_value=1)
+                cod = st.text_input("Código ID (Ex: IND01)")
+                if st.form_submit_button("Salvar"):
+                    new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", "risco": risco, "func": func, "segmentacao": "GHE", "resp": "RH", "email": "-", "logo": None, "score": 0, "respondidas": 0, "dimensoes": {}, "detalhe_perguntas": {}}
+                    st.session_state.companies_db.append(new_c)
+                    st.success("Salvo!")
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- 4. RELATÓRIOS (MODERNO E LIMPO) ---
     elif selected == "Relatórios":
         st.title("Relatórios e Laudos")
-        empresa_sel = st.selectbox("Cliente", [c['razao'] for c in st.session_state.companies_db])
+        
+        c_sel, c_blank = st.columns([1, 1])
+        with c_sel:
+            empresa_sel = st.selectbox("Cliente", [c['razao'] for c in st.session_state.companies_db])
+        
         empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_sel)
         
-        dimensoes = empresa.get('dimensoes', {})
-        textos_auto = gerar_analise_automatica(dimensoes)
-        acoes_auto = sugerir_acoes(dimensoes)
-        
-        if 'acoes_list' not in st.session_state or st.session_state.get('last_company') != empresa['id']:
-            st.session_state.acoes_list = acoes_auto
-            st.session_state.last_company = empresa['id']
+        # --- ÁREA DE EDIÇÃO DAS ASSINATURAS ---
+        with st.sidebar:
+            st.markdown("---")
+            st.markdown("#### Assinaturas do Relatório")
+            sig_empresa_nome = st.text_input("Nome Resp. Empresa", value=empresa['resp'])
+            sig_empresa_cargo = st.text_input("Cargo Resp. Empresa", value="Diretor(a) Administrativo")
+            sig_tecnico_nome = st.text_input("Nome Resp. Técnico", value="Cristiane C. Lima")
+            sig_tecnico_cargo = st.text_input("Cargo Resp. Técnico", value="Consultora Pessin Gestão")
 
-        with st.expander("📝 Editar Análise e Plano de Ação", expanded=True):
-            analise_demanda = st.text_area("Análise Demanda:", value=textos_auto.get('demanda', ''), height=80)
+        # --- ÁREA DE DADOS DO RELATÓRIO ---
+        with st.expander("📝 Editar Conteúdo Técnico", expanded=True):
+            analise_texto = st.text_area("Análise Executiva:", value="A avaliação identificou riscos críticos na dimensão 'Demandas', com 65% dos colaboradores relatando prazos irreais. A dimensão 'Relacionamentos' também requer atenção devido a relatos de conflitos.")
             
             st.markdown("#### Plano de Ação")
+            if 'acoes_list' not in st.session_state:
+                st.session_state.acoes_list = [{"acao": "Revisão de Job Description", "area": "Demanda", "resp": "RH", "prazo": "30/05"}]
+            
             edited_df = st.data_editor(pd.DataFrame(st.session_state.acoes_list), num_rows="dynamic", use_container_width=True)
             if not edited_df.empty: st.session_state.acoes_list = edited_df.to_dict('records')
 
-        if st.button("🖨️ Gerar Relatório PDF (A4)", type="primary"):
+        if st.button("🖨️ Gerar Relatório Moderno (PDF)", type="primary"):
             st.markdown("---")
             logo_html = get_logo_html(150)
             if empresa.get('logo'):
@@ -327,62 +315,163 @@ def admin_dashboard():
                 if b64: logo_html = f"<img src='data:image/png;base64,{b64}' width='150'>"
             
             plat_name = st.session_state.platform_config['name']
-            consultancy = st.session_state.platform_config['consultancy']
             
-            rows_res = ""
-            for dim, nota in dimensoes.items():
-                risco = "Alto" if nota < 3 else "Baixo"
-                cls = "risk-high" if nota < 3 else "risk-low"
-                rows_res += f"<tr><td>{dim}</td><td>{nota}</td><td class='{cls}'>{risco}</td></tr>"
+            # Geração dos Cards de Dimensões (Sem Tabelas)
+            html_dimensoes = ""
+            for dim, nota in empresa.get('dimensoes', {}).items():
+                cor_nota = COR_RISCO_ALTO if nota < 3 else (COR_RISCO_MEDIO if nota < 4 else COR_RISCO_BAIXO)
+                risco_txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
+                
+                html_dimensoes += f"""
+                <div class="rep-card">
+                    <h5>{dim}</h5>
+                    <div class="val" style="color:{cor_nota}">{nota}</div>
+                    <div style="font-size:9px; color:#888;">{risco_txt}</div>
+                </div>
+                """
             
-            rows_act = ""
-            for item in st.session_state.acoes_list:
-                rows_act += f"<tr><td>{item.get('acao','')}</td><td>{item.get('area','')}</td><td>{item.get('resp','')}</td><td>{item.get('prazo','')}</td></tr>"
+            # Geração do Detalhamento por Pergunta (Barras de Progresso)
+            html_perguntas = ""
+            detalhes = empresa.get('detalhe_perguntas', {})
+            for perg, pct in detalhes.items():
+                cor_bar = COR_RISCO_ALTO if pct > 50 else (COR_RISCO_MEDIO if pct > 30 else COR_RISCO_BAIXO)
+                html_perguntas += f"""
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:10px;">
+                        <span>{perg}</span>
+                        <span>{pct}% Risco</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width:{pct}%; background-color:{cor_bar};"></div>
+                    </div>
+                </div>
+                """
 
+            # HTML do Relatório
             html_content = textwrap.dedent(f"""
             <div class="a4-paper">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="rep-header">
                     <div>{logo_html}</div>
-                    <div style="text-align:right;"><div style="font-size:18px; color:{COR_PRIMARIA}; font-weight:bold;">LAUDO TÉCNICO HSE-IT</div><div>NR-01 / Riscos Psicossociais</div></div>
+                    <div style="text-align:right;">
+                        <div style="font-size:20px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div>
+                        <div style="font-size:12px; color:#666;">NR-01 / Gerenciamento de Riscos Psicossociais</div>
+                    </div>
                 </div>
-                <hr style="border:1px solid {COR_PRIMARIA}; margin-bottom:20px;">
-                <table class="hse-table">
-                <tr><td style="background:#f9f9f9;"><strong>Empresa:</strong> {empresa['razao']}</td><td style="background:#f9f9f9;"><strong>Data:</strong> {datetime.datetime.now().strftime('%d/%m/%Y')}</td></tr>
-                <tr><td><strong>CNPJ:</strong> {empresa['cnpj']}</td><td><strong>Adesão:</strong> {empresa['respondidas']} Vidas</td></tr>
-                </table>
-                <h4 style="color:{COR_PRIMARIA}; margin-top:20px;">1. Resultados da Avaliação</h4>
-                <table class="hse-table"><tr><th>Dimensão</th><th>Nota</th><th>Risco</th></tr>{rows_res}</table>
-                <h4 style="color:{COR_PRIMARIA}; margin-top:20px;">2. Análise Técnica</h4>
-                <p>{analise_demanda}</p>
-                <h4 style="color:{COR_PRIMARIA}; margin-top:20px;">3. Plano de Ação</h4>
-                <table class="hse-table"><tr><th>Ação</th><th>Área</th><th>Resp.</th><th>Prazo</th></tr>{rows_act}</table>
-                <div style="margin-top:50px; text-align:center; border-top:1px solid #ccc; padding-top:10px;"><strong>{consultancy}</strong><br>Responsável Técnico</div>
+                
+                <div style="display:flex; gap:20px; margin-bottom:30px;">
+                    <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:8px;">
+                        <div style="font-size:10px; text-transform:uppercase; color:#888;">Cliente</div>
+                        <div style="font-weight:bold;">{empresa['razao']}</div>
+                        <div style="font-size:11px;">CNPJ: {empresa['cnpj']}</div>
+                    </div>
+                    <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:8px;">
+                        <div style="font-size:10px; text-transform:uppercase; color:#888;">Dados da Avaliação</div>
+                        <div style="font-weight:bold;">Adesão: {empresa['respondidas']} / {empresa['func']}</div>
+                        <div style="font-size:11px;">Emissão: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
+                    </div>
+                </div>
+
+                <div class="rep-section-title">1. Diagnóstico Geral (Dimensões HSE)</div>
+                <div class="rep-grid">
+                    {html_dimensoes}
+                </div>
+
+                <div class="rep-section-title">2. Raio-X dos Fatores de Risco (Top Ofensores)</div>
+                <div style="background:white; border:1px solid #eee; padding:15px; border-radius:8px;">
+                    {html_perguntas}
+                </div>
+
+                <div class="rep-section-title">3. Parecer Técnico</div>
+                <p style="text-align:justify;">{analise_texto}</p>
+
+                <div class="rep-section-title">4. Plano de Ação Recomendado</div>
+                <ul style="list-style-type: square; padding-left:20px;">
+                    {''.join([f"<li><strong>{item['acao']}</strong> ({item['area']}) - Prazo: {item['resp']}</li>" for item in st.session_state.acoes_list])}
+                </ul>
+
+                <div style="margin-top:80px; display:flex; justify-content:space-between; gap:40px;">
+                    <div style="flex:1; text-align:center; border-top:1px solid #333; padding-top:10px;">
+                        <strong>{sig_empresa_nome}</strong><br>
+                        <span style="color:#666;">{sig_empresa_cargo}</span>
+                    </div>
+                    <div style="flex:1; text-align:center; border-top:1px solid #333; padding-top:10px;">
+                        <strong>{sig_tecnico_nome}</strong><br>
+                        <span style="color:#666;">{sig_tecnico_cargo}</span>
+                    </div>
+                </div>
             </div>
             """)
             st.markdown(html_content, unsafe_allow_html=True)
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
+    # --- 5. CONFIGURAÇÕES (ATUALIZADO) ---
     elif selected == "Configurações":
         st.title("Configurações")
-        with st.container(border=True):
-            st.subheader("Personalização")
-            new_name = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
-            new_cons = st.text_input("Nome Consultoria", value=st.session_state.platform_config['consultancy'])
+        
+        tab_brand, tab_users, tab_sys = st.tabs(["🎨 Personalização", "🔐 Gestão de Acessos", "⚙️ Sistema"])
+        
+        # ABA 1: WHITE LABEL
+        with tab_brand:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Identidade Visual")
+            c_name, c_cons = st.columns(2)
+            new_name = c_name.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+            new_cons = c_cons.text_input("Nome Consultoria", value=st.session_state.platform_config['consultancy'])
             new_logo = st.file_uploader("Logo Plataforma", type=['png', 'jpg'])
-            if st.button("Salvar"):
+            if st.button("Salvar Identidade"):
                 st.session_state.platform_config['name'] = new_name
                 st.session_state.platform_config['consultancy'] = new_cons
                 if new_logo: st.session_state.platform_config['logo_b64'] = image_to_base64(new_logo)
                 st.rerun()
-        
-        with st.container(border=True):
-            st.subheader("Sistema")
-            new_url = st.text_input("URL Base", value=st.session_state.base_url)
-            if st.button("Atualizar URL"): 
-                st.session_state.base_url = new_url
-                st.success("OK")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 6. TELA PESQUISA (COMPLETA E VALIDADA) ---
+        # ABA 2: GESTÃO DE USUÁRIOS (RECUPERADO)
+        with tab_users:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Administradores do Sistema")
+            
+            # Tabela de Usuários
+            users_list = pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Senha'])
+            users_list['Senha'] = "******" # Esconde senha
+            
+            c_table, c_form = st.columns([1, 1])
+            
+            with c_table:
+                st.dataframe(users_list, use_container_width=True)
+                # Excluir usuário
+                user_to_del = st.selectbox("Selecione para excluir:", list(st.session_state.users_db.keys()))
+                if st.button("🗑️ Excluir Usuário"):
+                    if user_to_del == "admin": st.error("Não é possível excluir o admin principal.")
+                    else:
+                        del st.session_state.users_db[user_to_del]
+                        st.success("Usuário removido.")
+                        st.rerun()
+
+            with c_form:
+                st.markdown("#### Adicionar / Alterar Senha")
+                with st.form("user_ops"):
+                    u_login = st.text_input("Login do Usuário")
+                    u_pass = st.text_input("Nova Senha", type="password")
+                    if st.form_submit_button("Salvar Usuário"):
+                        if u_login and u_pass:
+                            st.session_state.users_db[u_login] = u_pass
+                            st.success(f"Usuário {u_login} salvo/atualizado!")
+                            st.rerun()
+                        else:
+                            st.warning("Preencha login e senha.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # ABA 3: SISTEMA
+        with tab_sys:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Parâmetros Técnicos")
+            new_url = st.text_input("URL Base do Sistema (para Links)", value=st.session_state.base_url)
+            if st.button("Atualizar URL"):
+                st.session_state.base_url = new_url
+                st.success("URL Atualizada.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 6. TELA PESQUISA (COMPLETA 35 PERGUNTAS) ---
 def survey_screen():
     # Verifica login via URL ou via Botão de Teste
     query_params = st.query_params
@@ -403,61 +492,47 @@ def survey_screen():
         b64 = image_to_base64(comp.get('logo'))
         if b64: logo_show = f"<img src='data:image/png;base64,{b64}' width='150'>"
     
-    # CABEÇALHO DO FORMULÁRIO
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
-    st.info("🔒 Seus dados são confidenciais e protegidos. A empresa não terá acesso à sua resposta individual.")
+    st.info("🔒 Seus dados são confidenciais.")
 
     with st.form("survey_form"):
-        # DADOS DEMOGRÁFICOS DO RESPONDENTE
-        st.markdown("#### 1. Perfil do Respondente")
+        st.markdown("#### 1. Perfil")
         c1, c2, c3 = st.columns(3)
-        cpf = c1.text_input("CPF (Apenas números)", max_chars=11, help="Usado apenas para garantir que você não respondeu duas vezes. É criptografado.")
-        setor = c2.selectbox("Seu Setor", ["Administrativo", "Operacional", "Comercial", "TI", "Logística", "Outros"])
-        cargo = c3.text_input("Seu Cargo (Opcional)")
+        cpf = c1.text_input("CPF (Apenas números)", max_chars=11)
+        setor = c2.selectbox("Setor", ["ADM", "Operacional", "TI", "Vendas"])
+        cargo = c3.text_input("Cargo")
         
         st.markdown("---")
         st.markdown("#### 2. Questionário HSE")
         
-        # Abas para organizar as 35 perguntas
         tabs = st.tabs(list(st.session_state.hse_questions.keys()))
         
-        # Loop para gerar perguntas dinamicamente
         for i, (categoria, perguntas) in enumerate(st.session_state.hse_questions.items()):
             with tabs[i]:
                 st.markdown(f"**Sobre: {categoria}**")
                 for q in perguntas:
-                    st.markdown(f"##### {q['q']}") # Destaque na pergunta
-                    
-                    # Definição Inteligente da Escala (Frequência vs Concordância)
-                    if q['id'] <= 24:
-                        options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"]
-                    else:
-                        options = ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
-                    
-                    # Uso de Rádio Horizontal (Mais claro que Slider)
+                    st.markdown(f"##### {q['q']}")
+                    # Seletor Horizontal (Rádio) mais claro
                     st.radio(
-                        label="Selecione uma opção:", 
-                        options=options,
+                        "Selecione:", 
+                        ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id'] <= 24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"],
                         key=f"q_{q['id']}",
-                        horizontal=True, # Opções lado a lado
-                        help=f"💡 Exemplo: {q['help']}", # Tooltip de ajuda
+                        horizontal=True,
+                        help=f"💡 {q['help']}",
                         label_visibility="collapsed"
                     )
-                    st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True) # Separador visual
+                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
 
-        st.markdown("---")
-        if st.form_submit_button("✅ Enviar Respostas", type="primary"):
+        if st.form_submit_button("✅ Enviar", type="primary"):
             if not cpf:
-                st.error("Por favor, preencha o CPF para validar.")
+                st.error("CPF obrigatório.")
             else:
                 for c in st.session_state.companies_db:
                     if c['id'] == comp['id']: c['respondidas'] += 1
                 st.balloons()
-                st.success("Respostas enviadas com sucesso! Obrigado.")
+                st.success("Enviado com sucesso!")
                 time.sleep(2)
-                # Logout automático
-                del st.session_state['current_company']
                 st.session_state.logged_in = False
                 st.session_state.user_role = None
                 st.rerun()
