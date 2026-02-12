@@ -7,15 +7,13 @@ import urllib.parse
 from streamlit_option_menu import option_menu
 
 # --- 1. GESTÃO DE ESTADO E CONFIGURAÇÃO INICIAL ---
-# Inicializa configurações da plataforma (White Label)
 if 'platform_config' not in st.session_state:
     st.session_state.platform_config = {
         "name": "Elo NR-01",
         "consultancy": "Pessin Gestão",
-        "logo_b64": None # Armazena a logo personalizada
+        "logo_b64": None
     }
 
-# Configuração da página usa o nome dinâmico
 st.set_page_config(
     page_title=f"{st.session_state.platform_config['name']} | Sistema",
     page_icon="🔗",
@@ -55,7 +53,6 @@ st.markdown(f"""
 
     /* Containers */
     .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
-    .action-header {{ background-color: #ffebee; color: #c62828; padding: 10px 15px; border-radius: 8px 8px 0 0; font-weight: bold; text-transform: uppercase; font-size: 0.9em; }}
     
     /* Relatório A4 */
     .a4-paper {{ background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Arial', sans-serif; }}
@@ -69,14 +66,43 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DADOS (SIMULAÇÃO DE BANCO) ---
+# --- 3. DADOS (MOCKUP ATUALIZADO) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "admin", "cris": "123"}
 
 if 'companies_db' not in st.session_state:
+    # Estrutura atualizada com novos campos
     st.session_state.companies_db = [
-        {"id": "IND01", "razao": "Indústria Têxtil Fabril", "cnpj": "12.345.678/0001-90", "setor": "Industrial", "risco": 3, "func": 150, "resp": "Carlos Silva", "logo": None, "score": 2.8, "respondidas": 120},
-        {"id": "TEC02", "razao": "TechSolutions S.A.", "cnpj": "98.765.432/0001-10", "setor": "Tecnologia", "risco": 1, "func": 50, "resp": "Ana Souza", "logo": None, "score": 4.1, "respondidas": 15},
+        {
+            "id": "IND01", 
+            "razao": "Indústria Têxtil Fabril", 
+            "cnpj": "12.345.678/0001-90", 
+            "cnae": "13.51-1-00",
+            "setor": "Industrial", 
+            "risco": 3, 
+            "func": 150, 
+            "segmentacao": "GHE (Grupo Homogêneo)",
+            "resp": "Carlos Silva", 
+            "email": "carlos@fabril.com",
+            "logo": None, 
+            "score": 2.8, 
+            "respondidas": 120
+        },
+        {
+            "id": "TEC02", 
+            "razao": "TechSolutions S.A.", 
+            "cnpj": "98.765.432/0001-10", 
+            "cnae": "62.01-5-01",
+            "setor": "Tecnologia", 
+            "risco": 1, 
+            "func": 50, 
+            "segmentacao": "Setor/Departamento",
+            "resp": "Ana Souza", 
+            "email": "ana@tech.com",
+            "logo": None, 
+            "score": 4.1, 
+            "respondidas": 15
+        },
     ]
 
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
@@ -85,11 +111,9 @@ if 'user_role' not in st.session_state: st.session_state.user_role = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def get_logo_html(width=180):
-    """Retorna o HTML da logo (Personalizada ou Padrão)"""
     if st.session_state.platform_config['logo_b64']:
         return f'<img src="data:image/png;base64,{st.session_state.platform_config["logo_b64"]}" width="{width}">'
     
-    # Logo Padrão SVG
     svg = f"""
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="{width}">
       <style>
@@ -130,8 +154,6 @@ def login_screen():
     with c2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown(f"<div style='text-align:center'>{get_logo_html(250)}</div>", unsafe_allow_html=True)
-        
-        # Nome dinâmico da plataforma na tela de login
         plat_name = st.session_state.platform_config['name']
         st.markdown(f"<h3 style='text-align:center; color:#555;'>{plat_name}</h3>", unsafe_allow_html=True)
         
@@ -154,7 +176,7 @@ def admin_dashboard():
             menu_title=None,
             options=["Visão Geral", "Gerar Link", "Empresas", "Relatórios", "Configurações"],
             icons=["grid", "link-45deg", "building", "file-text", "gear"],
-            default_index=4, # Foco na aba Configurações
+            default_index=2, # Foco na aba Empresas
             styles={"nav-link-selected": {"background-color": COR_PRIMARIA}}
         )
         st.markdown("---")
@@ -205,25 +227,68 @@ def admin_dashboard():
                 st.image(qr_url, width=150)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- 3. EMPRESAS ---
+    # --- 3. EMPRESAS (CADASTRO COMPLETO) ---
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
+        
         tab1, tab2 = st.tabs(["Monitoramento", "Novo Cadastro"])
+        
         with tab1:
-            st.dataframe(pd.DataFrame(st.session_state.companies_db).drop(columns=['logo']), use_container_width=True)
+            # Exibe tabela resumida, mas com dados relevantes
+            df_view = pd.DataFrame(st.session_state.companies_db)
+            # Renomear colunas para visualização
+            df_view = df_view[['razao', 'cnpj', 'risco', 'segmentacao', 'func', 'respondidas']]
+            df_view.columns = ['Empresa', 'CNPJ', 'Risco', 'Tipo Segmentação', 'Vidas', 'Resp.']
+            st.dataframe(df_view, use_container_width=True)
+            
         with tab2:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Cadastro Técnico da Empresa")
+            st.caption("Preencha os dados completos para garantir a conformidade da NR-01.")
+            
             with st.form("add_comp"):
-                razao = st.text_input("Razão Social")
-                c1, c2 = st.columns(2)
-                cnpj = c1.text_input("CNPJ")
-                cod = c2.text_input("Código ID")
-                logo_file = st.file_uploader("Logo da Empresa", type=['png', 'jpg'])
-                if st.form_submit_button("Salvar"):
-                    new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", "risco": 1, "func": 100, "resp": "A Def", "logo": logo_file, "score": 0, "respondidas": 0}
-                    st.session_state.companies_db.append(new_c)
-                    st.success("Salvo!")
-                    st.rerun()
+                st.markdown("##### 1. Dados Legais")
+                c1, c2, c3 = st.columns(3)
+                razao = c1.text_input("Razão Social")
+                cnpj = c2.text_input("CNPJ")
+                cnae = c3.text_input("CNAE Principal", placeholder="Ex: 62.01-5-01")
+                
+                st.markdown("##### 2. Parâmetros de SST & RH")
+                c4, c5, c6 = st.columns(3)
+                risco = c4.selectbox("Grau de Risco (NR-04)", [1, 2, 3, 4])
+                func = c5.number_input("Quantidade de Colaboradores (Vidas)", min_value=1)
+                segmentacao = c6.selectbox("Segmentação da Análise", ["Setor/Departamento", "GHE (Grupo Homogêneo)", "GES (Grupo Similar)", "Ambiente Físico"])
+                
+                st.markdown("##### 3. Acesso & Responsável")
+                c7, c8, c9 = st.columns(3)
+                cod = c7.text_input("Código ID (Acesso)", placeholder="Ex: CLI-01")
+                resp = c8.text_input("Responsável Técnico/RH")
+                email_resp = c9.text_input("E-mail Contato")
+                
+                logo_file = st.file_uploader("Logo da Empresa (Para Relatório)", type=['png', 'jpg'])
+                
+                if st.form_submit_button("💾 Salvar Cadastro Completo"):
+                    if razao and cod:
+                        new_c = {
+                            "id": cod, 
+                            "razao": razao, 
+                            "cnpj": cnpj, 
+                            "cnae": cnae,
+                            "setor": "Geral", # Padrão, depois ajusta na análise
+                            "risco": risco, 
+                            "func": func, 
+                            "segmentacao": segmentacao,
+                            "resp": resp,
+                            "email": email_resp,
+                            "logo": logo_file, 
+                            "score": 0, 
+                            "respondidas": 0
+                        }
+                        st.session_state.companies_db.append(new_c)
+                        st.success(f"Empresa '{razao}' cadastrada com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Preencha pelo menos a Razão Social e o Código ID.")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --- 4. RELATÓRIOS ---
@@ -232,14 +297,28 @@ def admin_dashboard():
         empresa_sel = st.selectbox("Cliente", [c['razao'] for c in st.session_state.companies_db])
         empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_sel)
         
+        # Simulação de dados para visualização
+        fator_critico = "Demandas" if empresa['score'] < 3 else "Controle"
+        
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("Plano de Ação Interativo")
-            acoes = ["Revisão de Job Description", "Treinamento de Liderança", "Pausas Ativas"]
+            st.subheader("Diagnóstico")
+            st.info(f"Score: **{empresa['score']}** | Segmentação: **{empresa.get('segmentacao', 'Setor')}**")
+            st.markdown(f"**CNAE:** {empresa.get('cnae', '-')} | **Risco:** {empresa['risco']}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with c2:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Plano de Ação")
             acoes_sel = []
-            for a in acoes:
-                if st.checkbox(a, value=True): acoes_sel.append(a)
+            for i, a in enumerate(["Revisão Job Description", "Treinamento Liderança", "Pausas"]):
+                if st.checkbox(a, key=f"a_{i}", value=True): acoes_sel.append(a)
+            
+            st.markdown("**Cronograma:**")
+            d1, d2 = st.columns(2)
+            d_ini = d1.date_input("Início")
+            d_fim = d2.date_input("Fim")
             st.markdown("</div>", unsafe_allow_html=True)
         
         if st.button("🖨️ Gerar PDF (A4)", type="primary"):
@@ -251,6 +330,8 @@ def admin_dashboard():
             
             plat_name = st.session_state.platform_config['name']
             consultancy = st.session_state.platform_config['consultancy']
+            
+            html_acoes = "".join([f"<li>{a}</li>" for a in acoes_sel])
 
             html_content = f"""
             <div class="a4-paper">
@@ -264,100 +345,63 @@ def admin_dashboard():
                 <br>
                 <div style="background:#f8f9fa; padding:15px; border-radius:5px;">
                     <strong>Empresa:</strong> {empresa['razao']}<br>
-                    <strong>Data:</strong> {datetime.datetime.now().strftime('%d/%m/%Y')}
+                    <strong>CNPJ:</strong> {empresa['cnpj']} | <strong>CNAE:</strong> {empresa.get('cnae','-')}<br>
+                    <strong>Grau de Risco:</strong> {empresa['risco']} | <strong>Segmentação:</strong> {empresa.get('segmentacao','-')}
                 </div>
-                <h4>Diagnóstico e Ações</h4>
-                <ul>{''.join([f'<li>{a}</li>' for a in acoes_sel])}</ul>
+                <br>
+                <h4>Plano de Ação ({d_ini.strftime('%d/%m')} a {d_fim.strftime('%d/%m')})</h4>
+                <ul>{html_acoes}</ul>
                 
                 <div style="margin-top:100px; text-align:center; border-top:1px solid #ccc; padding-top:10px;">
-                    <strong>{consultancy}</strong><br>Consultoria Responsável
+                    <strong>{consultancy}</strong><br>Responsável Técnico
                 </div>
             </div>
             """
             st.markdown(html_content, unsafe_allow_html=True)
 
-    # --- 5. CONFIGURAÇÕES (WHITE LABEL & ACESSOS) ---
+    # --- 5. CONFIGURAÇÕES ---
     elif selected == "Configurações":
-        st.title("Configurações do Sistema")
+        st.title("Configurações")
         
-        tab_brand, tab_users, tab_sys = st.tabs(["🎨 Personalização (White Label)", "🔐 Gestão de Acessos", "⚙️ Sistema"])
+        tab_brand, tab_users, tab_sys = st.tabs(["🎨 Personalização", "🔐 Acessos", "⚙️ Sistema"])
         
-        # ABA 1: WHITE LABEL (Mude o nome e logo da plataforma)
         with tab_brand:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("Identidade Visual da Plataforma")
-            st.info("Aqui você configura como a plataforma aparece para seus clientes (caso venda para outra consultoria).")
-            
             c_name, c_cons = st.columns(2)
-            new_name = c_name.text_input("Nome da Plataforma", value=st.session_state.platform_config['name'])
-            new_cons = c_cons.text_input("Nome da Consultoria (Rodapé Relatório)", value=st.session_state.platform_config['consultancy'])
+            new_name = c_name.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+            new_cons = c_cons.text_input("Nome Consultoria", value=st.session_state.platform_config['consultancy'])
             
-            st.markdown("---")
-            st.write("**Logo da Plataforma (Login e Menu):**")
-            c_img, c_up = st.columns([1, 2])
-            with c_img:
-                st.markdown(get_logo_html(100), unsafe_allow_html=True)
-                st.caption("Logo Atual")
-            with c_up:
-                new_logo = st.file_uploader("Alterar Logo (PNG/JPG)", type=['png', 'jpg'])
-            
-            if st.button("💾 Salvar Identidade Visual"):
+            new_logo = st.file_uploader("Logo Plataforma", type=['png', 'jpg'])
+            if st.button("Salvar Identidade"):
                 st.session_state.platform_config['name'] = new_name
                 st.session_state.platform_config['consultancy'] = new_cons
-                if new_logo:
-                    st.session_state.platform_config['logo_b64'] = image_to_base64(new_logo)
-                st.success("Configurações visuais atualizadas com sucesso! A página será recarregada.")
-                time.sleep(2)
+                if new_logo: st.session_state.platform_config['logo_b64'] = image_to_base64(new_logo)
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # ABA 2: GESTÃO DE USUÁRIOS (Senha e Acessos)
         with tab_users:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("Administradores do Sistema")
+            st.subheader("Gestão de Usuários")
+            users_df = pd.DataFrame(list(st.session_state.users_db.items()), columns=['Login', 'Senha'])
+            users_df['Senha'] = '******'
+            st.dataframe(users_df, use_container_width=True)
             
-            # Tabela de Usuários
-            users_list = pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Senha'])
-            users_list['Senha'] = "******" # Esconde senha
-            
-            c_table, c_form = st.columns([1, 1])
-            
-            with c_table:
-                st.dataframe(users_list, use_container_width=True)
-                
-                # Excluir usuário
-                user_to_del = st.selectbox("Selecione para excluir:", list(st.session_state.users_db.keys()))
-                if st.button("🗑️ Excluir Usuário"):
-                    if user_to_del == "admin":
-                        st.error("Não é possível excluir o admin principal.")
-                    else:
-                        del st.session_state.users_db[user_to_del]
-                        st.success("Usuário removido.")
-                        st.rerun()
-
-            with c_form:
-                st.markdown("#### Adicionar / Alterar Senha")
-                with st.form("user_ops"):
-                    u_login = st.text_input("Login do Usuário")
-                    u_pass = st.text_input("Nova Senha", type="password")
-                    
-                    if st.form_submit_button("Salvar Usuário"):
-                        if u_login and u_pass:
-                            st.session_state.users_db[u_login] = u_pass
-                            st.success(f"Usuário {u_login} salvo/atualizado!")
-                            st.rerun()
-                        else:
-                            st.warning("Preencha login e senha.")
+            c_u1, c_u2 = st.columns(2)
+            new_u = c_u1.text_input("Novo Usuário")
+            new_p = c_u2.text_input("Nova Senha", type="password")
+            if st.button("Adicionar/Alterar"):
+                if new_u and new_p:
+                    st.session_state.users_db[new_u] = new_p
+                    st.success("Salvo!")
+                    st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # ABA 3: SISTEMA
         with tab_sys:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("Parâmetros Técnicos")
-            new_url = st.text_input("URL Base do Sistema (para Links)", value=st.session_state.base_url)
+            new_url = st.text_input("URL Base", value=st.session_state.base_url)
             if st.button("Atualizar URL"):
                 st.session_state.base_url = new_url
-                st.success("URL Atualizada.")
+                st.success("OK")
             st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 6. TELA PESQUISA ---
