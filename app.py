@@ -44,6 +44,14 @@ st.markdown(f"""
     .kpi-value {{ font-size: 24px; font-weight: 700; color: {COR_PRIMARIA}; }}
     .kpi-title {{ font-size: 13px; color: #666; font-weight: 600; margin-top: 5px; }}
     
+    /* Melhoria na visualização dos Radio Buttons (Opções claras) */
+    div[role="radiogroup"] > label > div:first-of-type {{
+        background-color: #f0f2f6; border: 1px solid #dce1e6; border-radius: 8px; padding: 10px;
+    }}
+    div[role="radiogroup"] > label > div:first-of-type:hover {{
+        border-color: {COR_SECUNDARIA}; background-color: #eefbf9;
+    }}
+    
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
@@ -71,7 +79,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DADOS E PERGUNTAS HSE (COMPLETO) ---
+# --- 3. DADOS E PERGUNTAS HSE (LISTA COMPLETA 35 ITENS) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "admin", "cris": "123"}
 
@@ -86,7 +94,7 @@ if 'companies_db' not in st.session_state:
         }
     ]
 
-# LISTA COMPLETA HSE 35 PERGUNTAS COM TOOLTIPS DIDÁTICOS
+# DICIONÁRIO COMPLETO HSE (35 ITENS)
 if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
@@ -95,6 +103,7 @@ if 'hse_questions' not in st.session_state:
             {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
             {"id": 12, "q": "Tenho que negligenciar tarefas por falta de tempo?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
             {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
+            {"id": 18, "q": "Sou pressionado(a) por diferentes grupos no trabalho?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas ao mesmo tempo."},
             {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético constante."},
             {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas que humanamente não dá para bater."}
         ],
@@ -102,19 +111,41 @@ if 'hse_questions' not in st.session_state:
             {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro ou pegar café sem pedir permissão."},
             {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher a ordem das tarefas."},
             {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar ou desacelerar quando necessário."},
-            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."}
+            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Você organiza sua própria agenda do dia."},
+            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."},
+            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Possibilidade de negociar horário de entrada/saída."}
         ],
         "Suporte Gestor": [
             {"id": 8, "q": "Recebo feedback sobre o trabalho que faço?", "rev": False, "help": "Ex: Saber se está indo bem ou mal."},
             {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: O chefe ajuda a resolver ou diz 'se vira'?"},
-            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."}
+            {"id": 29, "q": "Posso falar com meu superior sobre algo que me chateou?", "rev": False, "help": "Ex: Abertura para conversar sobre insatisfações."},
+            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."},
+            {"id": 35, "q": "Meu gestor me incentiva no trabalho?", "rev": False, "help": "Ex: Elogios ou motivação para continuar."}
+        ],
+        "Suporte Pares": [
+            {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "rev": False, "help": "Ex: Quando aperta, alguém te dá uma mão?"},
+            {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "rev": False, "help": "Ex: Tratamento cordial e profissional."},
+            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "rev": False, "help": "Ex: Ter com quem desabafar sobre o serviço."},
+            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade quando você está sobrecarregado."}
         ],
         "Relacionamentos": [
             {"id": 5, "q": "Estou sujeito a assédio pessoal (palavras/comportamentos)?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
             {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Clima pesado, fofocas ou brigas."},
+            {"id": 21, "q": "Estou sujeito(a) a bullying no trabalho?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
             {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
+        ],
+        "Papel": [
+            {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Ex: Suas metas e funções são nítidas."},
+            {"id": 4, "q": "Sei como fazer para executar meu trabalho?", "rev": False, "help": "Ex: Ter o conhecimento e ferramentas necessárias."},
+            {"id": 11, "q": "Sei quais são os objetivos do meu departamento?", "rev": False, "help": "Ex: Entender para onde a equipe está indo."},
+            {"id": 13, "q": "Sei o quanto de responsabilidade tenho?", "rev": False, "help": "Ex: Clareza sobre até onde vai sua autoridade."},
+            {"id": 17, "q": "Entendo como meu trabalho se encaixa no todo?", "rev": False, "help": "Ex: Ver sentido no que faz para a empresa."}
+        ],
+        "Mudança": [
+            {"id": 26, "q": "Tenho oportunidade de questionar sobre mudanças?", "rev": False, "help": "Ex: Espaço para tirar dúvidas sobre novidades."},
+            {"id": 28, "q": "Sou consultado(a) sobre mudanças no trabalho?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
+            {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Ex: Comunicação clara sobre o 'novo jeito'."}
         ]
-        # (Resumido para o código não ficar gigante, mas a lógica permite adicionar todos os 35)
     }
 
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
@@ -396,14 +427,24 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**Sobre: {categoria}**")
                 for q in perguntas:
-                    st.markdown(f"**{q['q']}**")
-                    st.select_slider(
-                        "Frequência", 
-                        options=["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], 
+                    st.markdown(f"##### {q['q']}") # Destaque na pergunta
+                    
+                    # Definição Inteligente da Escala (Frequência vs Concordância)
+                    if q['id'] <= 24:
+                        options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"]
+                    else:
+                        options = ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
+                    
+                    # Uso de Rádio Horizontal (Mais claro que Slider)
+                    st.radio(
+                        label="Selecione uma opção:", 
+                        options=options,
                         key=f"q_{q['id']}",
-                        help=f"💡 Exemplo: {q['help']}" # TOOLTIP DIDÁTICO AQUI
+                        horizontal=True, # Opções lado a lado
+                        help=f"💡 Exemplo: {q['help']}", # Tooltip de ajuda
+                        label_visibility="collapsed"
                     )
-                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True) # Separador visual
 
         st.markdown("---")
         if st.form_submit_button("✅ Enviar Respostas", type="primary"):
