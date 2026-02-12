@@ -1,84 +1,65 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import datetime
 import base64
 import urllib.parse
 from streamlit_option_menu import option_menu
-import random
 
-# --- 1. CONFIGURAÇÃO GERAL ---
-NOME_SISTEMA = "Elo NR-01"
-COR_PRIMARIA = "#2c3e50"  # Azul Escuro Profissional
-COR_SECUNDARIA = "#1abc9c" # Verde "Safe"
-COR_CARD_BG = "#ffffff"
-COR_FUNDO = "#f4f6f9"
+# --- 1. GESTÃO DE ESTADO E CONFIGURAÇÃO INICIAL ---
+# Inicializa configurações da plataforma (White Label)
+if 'platform_config' not in st.session_state:
+    st.session_state.platform_config = {
+        "name": "Elo NR-01",
+        "consultancy": "Pessin Gestão",
+        "logo_b64": None # Armazena a logo personalizada
+    }
 
+# Configuração da página usa o nome dinâmico
 st.set_page_config(
-    page_title=f"{NOME_SISTEMA} | Pessin Gestão",
+    page_title=f"{st.session_state.platform_config['name']} | Sistema",
     page_icon="🔗",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CSS PROFISSIONAL (Estilo Medseg) ---
+COR_PRIMARIA = "#2c3e50"
+COR_SECUNDARIA = "#1abc9c"
+COR_FUNDO = "#f4f6f9"
+
+# --- 2. CSS PROFISSIONAL ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    
-    /* Sidebar */
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards de KPI (Topo) */
+    /* Cards KPI */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
-        margin-bottom: 15px; transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;
+        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 140px;
     }}
-    .kpi-card:hover {{ transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }}
-    .kpi-title {{ font-size: 14px; color: #7f8c8d; font-weight: 500; margin-bottom: 5px; }}
-    .kpi-value {{ font-size: 28px; font-weight: 700; color: {COR_PRIMARIA}; }}
-    .kpi-icon {{ float: right; font-size: 24px; padding: 10px; border-radius: 10px; }}
+    .kpi-top {{ display: flex; justify-content: space-between; align-items: start; }}
+    .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }}
+    .kpi-title {{ font-size: 13px; color: #7f8c8d; font-weight: 600; margin-top: 10px; }}
+    .kpi-value {{ font-size: 28px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
     
-    /* Cores dos ícones */
+    /* Cores Ícones */
     .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
     .bg-green {{ background-color: #e8f5e9; color: #388e3c; }}
     .bg-orange {{ background-color: #fff3e0; color: #f57c00; }}
     .bg-purple {{ background-color: #f3e5f5; color: #7b1fa2; }}
     .bg-red {{ background-color: #ffebee; color: #d32f2f; }}
 
-    /* Gráficos Container */
-    .chart-container {{
-        background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; height: 100%;
-    }}
-
-    /* Barra de Progresso */
-    .progress-wrapper {{ background-color: #eee; border-radius: 10px; height: 10px; width: 100%; margin-top: 5px; }}
-    .progress-fill {{ height: 100%; border-radius: 10px; transition: width 0.5s ease; }}
-
-    /* Estilo do Plano de Ação (Seleção) */
-    .action-box {{
-        background-color: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
-        padding: 15px; margin-bottom: 10px; border-left: 4px solid {COR_SECUNDARIA};
-    }}
-
-    /* Relatório A4 */
-    .a4-paper {{
-        background: white; width: 210mm; min-height: 297mm;
-        margin: auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        color: #333; font-family: 'Arial', sans-serif;
-    }}
+    /* Containers */
+    .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
+    .action-header {{ background-color: #ffebee; color: #c62828; padding: 10px 15px; border-radius: 8px 8px 0 0; font-weight: bold; text-transform: uppercase; font-size: 0.9em; }}
     
-    /* Link Area */
-    .link-area {{
-        background-color: #f8f9fa; border: 1px dashed #dee2e6;
-        padding: 15px; border-radius: 8px; font-family: monospace;
-        color: #2c3e50; font-weight: bold; word-break: break-all;
-    }}
+    /* Relatório A4 */
+    .a4-paper {{ background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Arial', sans-serif; }}
+    .link-area {{ background-color: #f8f9fa; border: 1px dashed #dee2e6; padding: 15px; border-radius: 8px; font-family: monospace; color: #2c3e50; font-weight: bold; word-break: break-all; }}
     
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -88,7 +69,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DADOS E ESTADO ---
+# --- 3. DADOS (SIMULAÇÃO DE BANCO) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "admin", "cris": "123"}
 
@@ -96,7 +77,6 @@ if 'companies_db' not in st.session_state:
     st.session_state.companies_db = [
         {"id": "IND01", "razao": "Indústria Têxtil Fabril", "cnpj": "12.345.678/0001-90", "setor": "Industrial", "risco": 3, "func": 150, "resp": "Carlos Silva", "logo": None, "score": 2.8, "respondidas": 120},
         {"id": "TEC02", "razao": "TechSolutions S.A.", "cnpj": "98.765.432/0001-10", "setor": "Tecnologia", "risco": 1, "func": 50, "resp": "Ana Souza", "logo": None, "score": 4.1, "respondidas": 15},
-        {"id": "LOG03", "razao": "Transportadora Rápido", "cnpj": "45.123.456/0001-55", "setor": "Logística", "risco": 4, "func": 80, "resp": "Roberto Dias", "logo": None, "score": 3.2, "respondidas": 78},
     ]
 
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
@@ -104,7 +84,12 @@ if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'user_role' not in st.session_state: st.session_state.user_role = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
-def render_svg_logo(width=180):
+def get_logo_html(width=180):
+    """Retorna o HTML da logo (Personalizada ou Padrão)"""
+    if st.session_state.platform_config['logo_b64']:
+        return f'<img src="data:image/png;base64,{st.session_state.platform_config["logo_b64"]}" width="{width}">'
+    
+    # Logo Padrão SVG
     svg = f"""
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="{width}">
       <style>
@@ -117,7 +102,8 @@ def render_svg_logo(width=180):
       <text x="180" y="68" class="t2">NR-01</text>
     </svg>
     """
-    return base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+    b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+    return f'<img src="data:image/svg+xml;base64,{b64}">'
 
 def image_to_base64(uploaded_file):
     try:
@@ -132,9 +118,8 @@ def logout():
 def kpi_card(title, value, icon, color_class):
     st.markdown(f"""
     <div class="kpi-card">
-        <div class="kpi-icon {color_class}">{icon}</div>
-        <div class="kpi-title">{title}</div>
-        <div class="kpi-value">{value}</div>
+        <div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div></div>
+        <div><div class="kpi-value">{value}</div><div class="kpi-title">{title}</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -144,8 +129,11 @@ def login_screen():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        st.markdown(f"<div style='text-align:center'><img src='data:image/svg+xml;base64,{render_svg_logo(250)}'></div>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align:center; color:#555;'>Painel Administrativo</h3>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center'>{get_logo_html(250)}</div>", unsafe_allow_html=True)
+        
+        # Nome dinâmico da plataforma na tela de login
+        plat_name = st.session_state.platform_config['name']
+        st.markdown(f"<h3 style='text-align:center; color:#555;'>{plat_name}</h3>", unsafe_allow_html=True)
         
         with st.form("login"):
             user = st.text_input("Usuário")
@@ -161,12 +149,12 @@ def login_screen():
 
 def admin_dashboard():
     with st.sidebar:
-        st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'><img src='data:image/svg+xml;base64,{render_svg_logo(160)}'></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         selected = option_menu(
             menu_title=None,
             options=["Visão Geral", "Gerar Link", "Empresas", "Relatórios", "Configurações"],
             icons=["grid", "link-45deg", "building", "file-text", "gear"],
-            default_index=3, # Foco na aba Relatórios para teste
+            default_index=4, # Foco na aba Configurações
             styles={"nav-link-selected": {"background-color": COR_PRIMARIA}}
         )
         st.markdown("---")
@@ -178,245 +166,201 @@ def admin_dashboard():
         st.markdown(f"Bem-vinda, **Cris**")
         
         total_empresas = len(st.session_state.companies_db)
-        total_colaboradores = sum(c['func'] for c in st.session_state.companies_db)
         total_respondidas = sum(c['respondidas'] for c in st.session_state.companies_db)
-        avaliacoes_restantes = total_colaboradores - total_respondidas
         
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1: kpi_card("Total Empresas", total_empresas, "🏢", "bg-blue")
-        with col2: kpi_card("Total Vidas", total_colaboradores, "👥", "bg-purple")
-        with col3: kpi_card("Respondidas", total_respondidas, "✅", "bg-green")
-        with col4: kpi_card("Pendentes", avaliacoes_restantes, "⏳", "bg-orange")
-        with col5: kpi_card("Alertas", "3", "🚨", "bg-red")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1: kpi_card("Empresas", total_empresas, "🏢", "bg-blue")
+        with col2: kpi_card("Respondidas", total_respondidas, "✅", "bg-green")
+        with col3: kpi_card("Pendentes", 67, "⏳", "bg-orange")
+        with col4: kpi_card("Alertas", "3", "🚨", "bg-red")
 
         st.markdown("<br>", unsafe_allow_html=True)
         c_chart1, c_chart2 = st.columns([1, 1.5])
         with c_chart1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Distribuição por Setor")
+            st.markdown("##### Distribuição")
             df = pd.DataFrame(st.session_state.companies_db)
-            fig_pie = px.donut(df, names='setor', hole=0.5, color_discrete_sequence=px.colors.qualitative.Prism)
+            fig_pie = px.pie(df, names='setor', hole=0.6, color_discrete_sequence=px.colors.qualitative.Prism)
             fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, showlegend=True)
             st.plotly_chart(fig_pie, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        with c_chart2:
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Evolução - Respostas")
-            dates = pd.date_range(start='2025-01-01', periods=6, freq='M')
-            vals = [10, 45, 80, 150, 200, total_respondidas]
-            df_evo = pd.DataFrame({'Data': dates, 'Respostas': vals})
-            fig_area = px.area(df_evo, x='Data', y='Respostas', color_discrete_sequence=[COR_SECUNDARIA])
-            fig_area.update_layout(margin=dict(t=10, b=0, l=0, r=0), height=250)
-            st.plotly_chart(fig_area, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --- 2. GERAR LINK ---
     elif selected == "Gerar Link":
-        st.title("Gerar Link de Avaliação")
+        st.title("Gerar Link")
         with st.container():
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            c_sel, c_blank = st.columns([3, 1])
-            with c_sel:
-                empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
-            
+            empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
             empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
             link_final = f"{st.session_state.base_url}/?cod={empresa['id']}"
             
-            col_dados, col_qr = st.columns([2, 1])
-            with col_dados:
-                st.markdown("##### Link da Avaliação")
+            c1, c2 = st.columns([2, 1])
+            with c1:
                 st.markdown(f"<div class='link-area'>{link_final}</div>", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
-                b1, b2 = st.columns([1, 1])
-                b1.info("Copie o link acima 👆")
-                b2.link_button("Abrir Link ↗", link_final)
-                st.markdown("---")
-                st.markdown(f"**Adesão Atual:** {empresa['respondidas']} de {empresa['func']}")
-                progresso = empresa['respondidas'] / empresa['func']
-                st.markdown(f"""<div class="progress-wrapper"><div class="progress-fill" style="width: {progresso*100}%; background-color: {COR_SECUNDARIA if progresso > 0.7 else '#f1c40f'};"></div></div>""", unsafe_allow_html=True)
-
-            with col_qr:
-                st.markdown("##### QR Code")
-                qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(link_final)}"
-                st.image(qr_url, width=180)
-                st.caption("Baixar QR Code")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<div class='dashboard-card'>", unsafe_allow_html=True)
-            st.markdown("##### 💬 Mensagem de Convite")
-            texto_base = f"""Olá time {empresa['razao']}! 👋\n\nA **Pessin Gestão** iniciou o programa *Elo NR-01*. Sua participação é o elo que fortalece nossa equipe.\n\n👇 **Clique para responder:**\n{link_final}"""
-            st.text_area("Edite a mensagem:", value=texto_base, height=200)
+                st.markdown(f"**Adesão:** {empresa['respondidas']}/{empresa['func']}")
+                prog = empresa['respondidas']/empresa['func'] if empresa['func'] > 0 else 0
+                st.markdown(f"""<div style="background:#eee;height:8px;border-radius:4px;"><div style="width:{prog*100}%;background:{COR_SECUNDARIA};height:100%;border-radius:4px;"></div></div>""", unsafe_allow_html=True)
+            with c2:
+                qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(link_final)}"
+                st.image(qr_url, width=150)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --- 3. EMPRESAS ---
     elif selected == "Empresas":
-        st.title("Empresas & Monitoramento")
+        st.title("Gestão de Empresas")
         tab1, tab2 = st.tabs(["Monitoramento", "Novo Cadastro"])
         with tab1:
-            st.write("Acompanhe em tempo real.")
-            header_cols = st.columns([2, 1, 1, 1, 2])
-            header_cols[0].write("**Empresa**")
-            header_cols[1].write("**Setor**")
-            header_cols[2].write("**Total Vidas**")
-            header_cols[3].write("**Resp.**")
-            header_cols[4].write("**Progresso**")
-            st.markdown("---")
-            for emp in st.session_state.companies_db:
-                cols = st.columns([2, 1, 1, 1, 2])
-                cols[0].write(emp['razao'])
-                cols[1].write(emp['setor'])
-                cols[2].write(str(emp['func']))
-                cols[3].write(str(emp['respondidas']))
-                cols[4].progress(emp['respondidas'] / emp['func'])
+            st.dataframe(pd.DataFrame(st.session_state.companies_db).drop(columns=['logo']), use_container_width=True)
         with tab2:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             with st.form("add_comp"):
+                razao = st.text_input("Razão Social")
                 c1, c2 = st.columns(2)
-                razao = c1.text_input("Razão Social")
-                cnpj = c2.text_input("CNPJ")
-                c3, c4, c5 = st.columns(3)
-                risco = c3.selectbox("Grau de Risco", [1, 2, 3, 4])
-                func = c4.number_input("Nº Funcionários", min_value=1)
-                cod = c5.text_input("Código ID", placeholder="Ex: CLI-01")
+                cnpj = c1.text_input("CNPJ")
+                cod = c2.text_input("Código ID")
                 logo_file = st.file_uploader("Logo da Empresa", type=['png', 'jpg'])
-                if st.form_submit_button("Salvar Cadastro"):
-                    new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", "risco": risco, "func": func, "resp": "A Definir", "logo": logo_file, "score": 0, "respondidas": 0}
+                if st.form_submit_button("Salvar"):
+                    new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "setor": "Geral", "risco": 1, "func": 100, "resp": "A Def", "logo": logo_file, "score": 0, "respondidas": 0}
                     st.session_state.companies_db.append(new_c)
-                    st.success("Salvo com sucesso!")
+                    st.success("Salvo!")
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- 4. RELATÓRIOS (NOVO PLANO DE AÇÃO INTERATIVO) ---
+    # --- 4. RELATÓRIOS ---
     elif selected == "Relatórios":
         st.title("Relatórios e Laudos")
-        
-        empresa_sel = st.selectbox("Selecione o Cliente", [c['razao'] for c in st.session_state.companies_db])
+        empresa_sel = st.selectbox("Cliente", [c['razao'] for c in st.session_state.companies_db])
         empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_sel)
         
-        col_res, col_plan = st.columns([1, 1])
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Plano de Ação Interativo")
+            acoes = ["Revisão de Job Description", "Treinamento de Liderança", "Pausas Ativas"]
+            acoes_sel = []
+            for a in acoes:
+                if st.checkbox(a, value=True): acoes_sel.append(a)
+            st.markdown("</div>", unsafe_allow_html=True)
         
-        # Área de Diagnóstico (Visualização Rápida)
-        with col_res:
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("Diagnóstico Preliminar")
-            st.info(f"Score Atual: **{empresa['score']} / 5.0**")
-            
-            # Dados Mockados para o exemplo
-            fator_critico = "Demandas" if empresa['score'] < 3 else "Controle"
-            st.write(f"⚠️ **Fator Crítico:** {fator_critico}")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        # --- PLANO DE AÇÃO INTERATIVO ---
-        with col_plan:
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("🛠️ Plano de Ação Recomendado")
-            st.caption("Selecione as medidas para incluir no laudo.")
-            
-            # Sugestões Baseadas no Fator Crítico
-            sugestoes = {
-                "Demandas": ["Revisão de Job Description", "Redistribuição de tarefas", "Ajuste de prazos com clientes", "Contratação de apoio temporário"],
-                "Controle": ["Implementar horário flexível", "Aumentar autonomia na tarefa", "Participação na tomada de decisão"],
-                "Apoio": ["Treinamento de Liderança", "Reuniões 1:1 quinzenais", "Feedback estruturado"]
-            }
-            
-            lista_sugestoes = sugestoes.get(fator_critico, sugestoes["Demandas"])
-            acoes_selecionadas = []
-            
-            # 1. Checklist Interativo
-            st.markdown(f"**Medidas para: {fator_critico}**")
-            for i, acao in enumerate(lista_sugestoes):
-                # Usando checkbox como 'toggle' visual
-                if st.checkbox(acao, key=f"act_{i}", value=(i==0)):
-                    acoes_selecionadas.append(acao)
-            
+        if st.button("🖨️ Gerar PDF (A4)", type="primary"):
             st.markdown("---")
-            
-            # 2. Campo para Adicionar
-            nova_acao = st.text_input("➕ Adicionar medida personalizada:")
-            if nova_acao:
-                acoes_selecionadas.append(nova_acao)
-            
-            st.markdown("---")
-            
-            # 3. Prazos (Cronograma)
-            st.markdown("**Cronograma de Execução:**")
-            c_d1, c_d2 = st.columns(2)
-            data_inicio = c_d1.date_input("Início", datetime.date.today())
-            data_fim = c_d2.date_input("Previsão de Conclusão", datetime.date.today() + datetime.timedelta(days=30))
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        # Botão de Geração
-        if st.button("🖨️ Gerar Relatório Completo (A4)", type="primary", use_container_width=True):
-            st.markdown("---")
-            logo_html = render_svg_logo(120)
+            logo_html = get_logo_html(120)
             if empresa.get('logo'):
                 b64 = image_to_base64(empresa.get('logo'))
                 if b64: logo_html = f"<img src='data:image/png;base64,{b64}' width='120'>"
-
-            # Lista HTML das ações selecionadas
-            html_acoes = "".join([f"<li style='margin-bottom:5px;'>{a}</li>" for a in acoes_selecionadas])
+            
+            plat_name = st.session_state.platform_config['name']
+            consultancy = st.session_state.platform_config['consultancy']
 
             html_content = f"""
             <div class="a4-paper">
-                <div style="display:flex; justify-content:space-between; border-bottom: 2px solid {COR_PRIMARIA}; padding-bottom:20px; margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; border-bottom: 2px solid {COR_PRIMARIA}; padding-bottom:20px;">
                     <div>{logo_html}</div>
                     <div style="text-align:right;">
-                        <h2 style="color:{COR_PRIMARIA}; margin:0;">LAUDO TÉCNICO NR-01</h2>
-                        <span style="color:#666;">Avaliação de Riscos Psicossociais</span>
+                        <h2 style="color:{COR_PRIMARIA}; margin:0;">LAUDO TÉCNICO</h2>
+                        <span style="color:#666;">{plat_name}</span>
                     </div>
                 </div>
-
-                <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; border-left:5px solid {COR_SECUNDARIA};">
+                <br>
+                <div style="background:#f8f9fa; padding:15px; border-radius:5px;">
                     <strong>Empresa:</strong> {empresa['razao']}<br>
-                    <strong>CNPJ:</strong> {empresa['cnpj']} | <strong>Grau de Risco:</strong> {empresa['risco']}<br>
-                    <strong>Adesão:</strong> {empresa['respondidas']} de {empresa['func']} colaboradores.
+                    <strong>Data:</strong> {datetime.datetime.now().strftime('%d/%m/%Y')}
                 </div>
-
-                <h4 style="color:{COR_PRIMARIA}; margin-top:30px;">1. Diagnóstico Executivo</h4>
-                <p>O Score Global de Saúde Mental da organização é de <strong>{empresa['score']}/5.0</strong>.</p>
-                <p>O fator crítico identificado foi: <strong style="color:#d32f2f;">{fator_critico.upper()}</strong>.</p>
+                <h4>Diagnóstico e Ações</h4>
+                <ul>{''.join([f'<li>{a}</li>' for a in acoes_sel])}</ul>
                 
-                <h4 style="color:{COR_PRIMARIA}; background-color:#eef2f3; padding:5px;">2. Plano de Ação Definido</h4>
-                <div style="border:1px solid #ddd; padding:15px; border-radius:5px;">
-                    <p><strong>Medidas de Prevenção e Controle:</strong></p>
-                    <ul>{html_acoes}</ul>
-                    <hr style="border-top:1px dashed #ccc;">
-                    <p><strong>Cronograma:</strong></p>
-                    <table style="width:100%; font-size:0.9em;">
-                        <tr>
-                            <td><strong>Início:</strong> {data_inicio.strftime('%d/%m/%Y')}</td>
-                            <td><strong>Conclusão Prevista:</strong> {data_fim.strftime('%d/%m/%Y')}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <h4 style="color:{COR_PRIMARIA}; margin-top:30px;">3. Parecer Técnico</h4>
-                <p style="text-align:justify;">A organização demonstra proatividade na identificação dos riscos. As medidas acima visam mitigar o impacto do fator '{fator_critico}' na saúde dos trabalhadores, em conformidade com o item 1.5.3.1.1 da NR-01.</p>
-
-                <div style="margin-top:80px; display:flex; justify-content:space-between;">
-                    <div style="text-align:center; width:45%; border-top:1px solid #333; padding-top:10px;">
-                        <strong>{empresa['resp']}</strong><br>Resp. Legal da Empresa
-                    </div>
-                    <div style="text-align:center; width:45%; border-top:1px solid #333; padding-top:10px;">
-                        <strong>Cristiane C. Lima</strong><br>Consultora Pessin Gestão
-                    </div>
+                <div style="margin-top:100px; text-align:center; border-top:1px solid #ccc; padding-top:10px;">
+                    <strong>{consultancy}</strong><br>Consultoria Responsável
                 </div>
             </div>
             """
             st.markdown(html_content, unsafe_allow_html=True)
-            st.info("Pressione Ctrl+P para salvar como PDF.")
 
-    # --- 5. CONFIGURAÇÕES ---
+    # --- 5. CONFIGURAÇÕES (WHITE LABEL & ACESSOS) ---
     elif selected == "Configurações":
-        st.title("Configurações")
-        st.info("Ajuste aqui o link real do seu aplicativo quando fizer o deploy.")
-        nova_url = st.text_input("URL do Sistema", value=st.session_state.base_url)
-        if st.button("Salvar URL"):
-            st.session_state.base_url = nova_url
-            st.success("URL Atualizada.")
+        st.title("Configurações do Sistema")
+        
+        tab_brand, tab_users, tab_sys = st.tabs(["🎨 Personalização (White Label)", "🔐 Gestão de Acessos", "⚙️ Sistema"])
+        
+        # ABA 1: WHITE LABEL (Mude o nome e logo da plataforma)
+        with tab_brand:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Identidade Visual da Plataforma")
+            st.info("Aqui você configura como a plataforma aparece para seus clientes (caso venda para outra consultoria).")
+            
+            c_name, c_cons = st.columns(2)
+            new_name = c_name.text_input("Nome da Plataforma", value=st.session_state.platform_config['name'])
+            new_cons = c_cons.text_input("Nome da Consultoria (Rodapé Relatório)", value=st.session_state.platform_config['consultancy'])
+            
+            st.markdown("---")
+            st.write("**Logo da Plataforma (Login e Menu):**")
+            c_img, c_up = st.columns([1, 2])
+            with c_img:
+                st.markdown(get_logo_html(100), unsafe_allow_html=True)
+                st.caption("Logo Atual")
+            with c_up:
+                new_logo = st.file_uploader("Alterar Logo (PNG/JPG)", type=['png', 'jpg'])
+            
+            if st.button("💾 Salvar Identidade Visual"):
+                st.session_state.platform_config['name'] = new_name
+                st.session_state.platform_config['consultancy'] = new_cons
+                if new_logo:
+                    st.session_state.platform_config['logo_b64'] = image_to_base64(new_logo)
+                st.success("Configurações visuais atualizadas com sucesso! A página será recarregada.")
+                time.sleep(2)
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 6. TELA DE PESQUISA (USUÁRIO) ---
+        # ABA 2: GESTÃO DE USUÁRIOS (Senha e Acessos)
+        with tab_users:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Administradores do Sistema")
+            
+            # Tabela de Usuários
+            users_list = pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Senha'])
+            users_list['Senha'] = "******" # Esconde senha
+            
+            c_table, c_form = st.columns([1, 1])
+            
+            with c_table:
+                st.dataframe(users_list, use_container_width=True)
+                
+                # Excluir usuário
+                user_to_del = st.selectbox("Selecione para excluir:", list(st.session_state.users_db.keys()))
+                if st.button("🗑️ Excluir Usuário"):
+                    if user_to_del == "admin":
+                        st.error("Não é possível excluir o admin principal.")
+                    else:
+                        del st.session_state.users_db[user_to_del]
+                        st.success("Usuário removido.")
+                        st.rerun()
+
+            with c_form:
+                st.markdown("#### Adicionar / Alterar Senha")
+                with st.form("user_ops"):
+                    u_login = st.text_input("Login do Usuário")
+                    u_pass = st.text_input("Nova Senha", type="password")
+                    
+                    if st.form_submit_button("Salvar Usuário"):
+                        if u_login and u_pass:
+                            st.session_state.users_db[u_login] = u_pass
+                            st.success(f"Usuário {u_login} salvo/atualizado!")
+                            st.rerun()
+                        else:
+                            st.warning("Preencha login e senha.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # ABA 3: SISTEMA
+        with tab_sys:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.subheader("Parâmetros Técnicos")
+            new_url = st.text_input("URL Base do Sistema (para Links)", value=st.session_state.base_url)
+            if st.button("Atualizar URL"):
+                st.session_state.base_url = new_url
+                st.success("URL Atualizada.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 6. TELA PESQUISA ---
 def survey_screen():
     query_params = st.query_params
     cod_url = query_params.get("cod", None)
@@ -426,32 +370,26 @@ def survey_screen():
         if company: st.session_state.current_company = company
     
     if 'current_company' not in st.session_state:
-        st.error("Link inválido. Tente novamente.")
-        if st.button("Ir para Login"): 
-            st.session_state.logged_in = False
-            st.rerun()
+        st.error("Link inválido.")
+        if st.button("Ir para Login"): st.session_state.logged_in = False; st.rerun()
         return
 
     comp = st.session_state.current_company
-    logo_show = render_svg_logo(150)
+    logo_show = get_logo_html(150)
     if comp.get('logo'):
         b64 = image_to_base64(comp.get('logo'))
         if b64: logo_show = f"<img src='data:image/png;base64,{b64}' width='150'>"
     
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
-    st.markdown(f"<h2 style='text-align:center;'>Avaliação - {comp['razao']}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align:center'>Avaliação - {comp['razao']}</h3>", unsafe_allow_html=True)
     
     with st.form("survey"):
-        st.write("**1. Tenho prazos impossíveis de cumprir?**")
-        st.select_slider("", ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], key="q1")
-        st.write("**2. Tenho autonomia no meu trabalho?**")
-        st.select_slider("", ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], key="q2")
-        
-        if st.form_submit_button("✅ Enviar Respostas", type="primary"):
+        st.write("**1. Tenho prazos impossíveis?**")
+        st.select_slider("", ["Nunca", "Sempre"], key="q1")
+        if st.form_submit_button("Enviar"):
             for c in st.session_state.companies_db:
                 if c['id'] == comp['id']: c['respondidas'] += 1
-            st.balloons()
-            st.success("Respostas enviadas com sucesso!")
+            st.success("Enviado!")
             time.sleep(2)
             del st.session_state['current_company']
             st.rerun()
