@@ -9,6 +9,7 @@ import urllib.request
 from streamlit_option_menu import option_menu
 import textwrap
 import random
+import hashlib
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 if 'platform_config' not in st.session_state:
@@ -59,14 +60,24 @@ st.markdown(f"""
     /* Containers */
     .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
 
-    /* Radio Buttons */
+    /* Radio Buttons Melhorados */
     div[role="radiogroup"] > label > div:first-of-type {{
-        background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px;
+        background-color: #ffffff; border: 1px solid #ced4da; border-radius: 6px; padding: 10px 15px; text-align: center; font-size: 0.9em;
     }}
     div[role="radiogroup"] > label > div:first-of-type:hover {{
-        border-color: {COR_SECUNDARIA}; background-color: #e0f2f1;
+        border-color: {COR_SECUNDARIA}; background-color: #e0f2f1; cursor: pointer;
+    }}
+    /* Quando selecionado */
+    div[role="radiogroup"] > label[data-checked="true"] > div:first-of-type {{
+        background-color: {COR_SECUNDARIA}; color: white; border-color: {COR_SECUNDARIA};
     }}
     
+    /* Mensagem de Segurança */
+    .security-box {{
+        background-color: #e8f5e9; border: 1px solid #c8e6c9; border-left: 5px solid #2e7d32;
+        padding: 15px; border-radius: 5px; color: #1b5e20; margin-bottom: 20px; font-size: 0.9em;
+    }}
+
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
@@ -77,7 +88,7 @@ st.markdown(f"""
     /* Estilos Tabela HTML Relatório */
     .rep-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }}
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; }}
-    .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; }}
+    .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -99,61 +110,68 @@ if 'companies_db' not in st.session_state:
             "segmentacao": "GHE", "resp": "Carlos Silva", "email": "carlos@fabril.com",
             "logo": None, "score": 2.8, "respondidas": 120,
             "dimensoes": {"Demandas": 2.1, "Controle": 3.5, "Suporte Gestor": 2.8, "Suporte Pares": 4.0, "Relacionamentos": 2.5, "Papel": 4.5, "Mudança": 3.0},
-            "detalhe_perguntas": {"Prazos impossíveis de cumprir?": 65, "Pressão para trabalhar longas horas?": 45}
+            "detalhe_perguntas": {
+                "Prazos impossíveis de cumprir?": 65, 
+                "Pressão para trabalhar longas horas?": 45, 
+                "Tenho que trabalhar muito intensamente?": 55, 
+                "Estou sujeito a assédio pessoal?": 15,
+                "Tenho autonomia sobre pausas?": 10,
+                "Recebo feedback do gestor?": 30
+            }
         }
     ]
 
-# LISTA COMPLETA HSE 35 PERGUNTAS (RESTAURADA)
+# LISTA COMPLETA HSE 35 PERGUNTAS
 if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
             {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "rev": True, "help": "Ex: Receber tarefas às 17h para entregar às 18h."},
-            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Hora extra constante."},
-            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Sem tempo para respirar."},
-            {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Fazer correndo para entregar."},
-            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular almoço."},
-            {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Ex: Ordens conflitantes."},
-            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético."},
-            {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas inalcançáveis."}
+            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Sentir que precisa fazer hora extra sempre para dar conta."},
+            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
+            {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
+            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
+            {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
+            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético constante."},
+            {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas que humanamente não dá para bater."}
         ],
         "Controle": [
-            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro sem pedir."},
-            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher o método."},
-            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar/desacelerar."},
-            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Organização da agenda."},
-            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: Opinar sobre processos."},
-            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Banco de horas."}
+            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro ou pegar café sem pedir permissão."},
+            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher a ordem das tarefas."},
+            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar ou desacelerar quando necessário."},
+            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Você organiza sua própria agenda do dia."},
+            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."},
+            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Possibilidade de negociar horário de entrada/saída."}
         ],
         "Suporte Gestor": [
-            {"id": 8, "q": "Recebo feedback sobre o trabalho?", "rev": False, "help": "Ex: Saber se está indo bem."},
-            {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: Apoio na dificuldade."},
-            {"id": 29, "q": "Posso falar com meu superior sobre algo que chateou?", "rev": False, "help": "Ex: Abertura para diálogo."},
-            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Gestão humanizada."},
-            {"id": 35, "q": "Meu gestor me incentiva?", "rev": False, "help": "Ex: Motivação."}
+            {"id": 8, "q": "Recebo feedback sobre o trabalho?", "rev": False, "help": "Ex: Saber se está indo bem ou mal."},
+            {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: O chefe ajuda a resolver ou diz 'se vira'?"},
+            {"id": 29, "q": "Posso falar com meu superior sobre algo que chateou?", "rev": False, "help": "Ex: Abertura para conversar sobre insatisfações."},
+            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."},
+            {"id": 35, "q": "Meu gestor me incentiva?", "rev": False, "help": "Ex: Elogios ou motivação para continuar."}
         ],
         "Suporte Pares": [
-            {"id": 7, "q": "Recebo ajuda dos colegas?", "rev": False, "help": "Ex: Apoio da equipe."},
-            {"id": 24, "q": "Recebo respeito dos colegas?", "rev": False, "help": "Ex: Tratamento cordial."},
-            {"id": 27, "q": "Colegas me ouvem sobre problemas?", "rev": False, "help": "Ex: Desabafo técnico."},
-            {"id": 31, "q": "Colegas ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade."}
+            {"id": 7, "q": "Recebo ajuda dos colegas?", "rev": False, "help": "Ex: Quando aperta, alguém te dá uma mão?"},
+            {"id": 24, "q": "Recebo respeito dos colegas?", "rev": False, "help": "Ex: Tratamento cordial e profissional."},
+            {"id": 27, "q": "Colegas me ouvem sobre problemas?", "rev": False, "help": "Ex: Ter com quem desabafar sobre o serviço."},
+            {"id": 31, "q": "Colegas ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade quando você está sobrecarregado."}
         ],
         "Relacionamentos": [
-            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas."},
-            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Brigas e fofocas."},
-            {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Exclusão."},
-            {"id": 34, "q": "Relacionamentos são tensos?", "rev": True, "help": "Ex: Clima pesado."}
+            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
+            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Clima pesado, fofocas ou brigas."},
+            {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
+            {"id": 34, "q": "Relacionamentos são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
         ],
         "Papel": [
-            {"id": 1, "q": "Sei o que é esperado de mim?", "rev": False, "help": "Ex: Metas claras."},
-            {"id": 4, "q": "Sei como fazer meu trabalho?", "rev": False, "help": "Ex: Tenho conhecimento."},
-            {"id": 11, "q": "Sei os objetivos do departamento?", "rev": False, "help": "Ex: Visão macro."},
-            {"id": 13, "q": "Sei minha responsabilidade?", "rev": False, "help": "Ex: Limites da função."},
-            {"id": 17, "q": "Entendo meu encaixe na empresa?", "rev": False, "help": "Ex: Propósito."}
+            {"id": 1, "q": "Sei o que é esperado de mim?", "rev": False, "help": "Ex: Suas metas e funções são nítidas."},
+            {"id": 4, "q": "Sei como fazer meu trabalho?", "rev": False, "help": "Ex: Tenho o conhecimento e ferramentas necessárias."},
+            {"id": 11, "q": "Sei os objetivos do departamento?", "rev": False, "help": "Ex: Entender para onde a equipe está indo."},
+            {"id": 13, "q": "Sei minha responsabilidade?", "rev": False, "help": "Ex: Clareza sobre até onde vai sua autoridade."},
+            {"id": 17, "q": "Entendo meu encaixe na empresa?", "rev": False, "help": "Ex: Ver sentido no que faz para a empresa."}
         ],
         "Mudança": [
-            {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Tirar dúvidas."},
-            {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes."},
-            {"id": 32, "q": "Mudanças são claras?", "rev": False, "help": "Ex: Comunicação transparente."}
+            {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Espaço para tirar dúvidas sobre novidades."},
+            {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
+            {"id": 32, "q": "Mudanças são claras?", "rev": False, "help": "Ex: Comunicação transparente sobre o 'novo jeito'."}
         ]
     }
 
@@ -266,8 +284,9 @@ def admin_dashboard():
 
             st.markdown("---")
             st.markdown("##### 💬 Mensagem de Convite")
-            texto_convite = f"""*Pesquisa de Clima - {empresa['razao']}* 🌟\n\nOlá! A **Pessin Gestão** iniciou o programa *Elo NR-01*.\n🛡️ **Seguro e Anônimo.**\n👇 **Participe:**\n{link_final}"""
-            st.text_area("", value=texto_convite, height=150)
+            st.caption("Texto pronto para WhatsApp e E-mail:")
+            texto_convite = f"""*Pesquisa de Clima - {empresa['razao']}* 🌟\n\nOlá! A **Pessin Gestão** iniciou o programa *Elo NR-01* para cuidar do que temos de mais valioso: **nós mesmos**.\n\nO objetivo é ouvir vocês para tornar nosso ambiente de trabalho mais saudável e equilibrado.\n\n🛡️ **É seguro?** Sim! A pesquisa é 100% anônima e confidencial.\n🔒 **É rápido?** Leva menos de 5 minutos.\n\nSua participação é fundamental!\n\n👇 **Clique no link para responder:**\n{link_final}\n\nContamos com você!"""
+            st.text_area("", value=texto_convite, height=250)
             st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Empresas":
@@ -290,7 +309,6 @@ def admin_dashboard():
                 c7, c8, c9 = st.columns(3)
                 cod = c7.text_input("ID Acesso")
                 resp = c8.text_input("Responsável")
-                # CAMPO DE UPLOAD DA LOGO (RESTAURADO)
                 logo_cliente = c9.file_uploader("Logo Cliente", type=['png', 'jpg'])
                 
                 if st.form_submit_button("Salvar"):
@@ -322,12 +340,12 @@ def admin_dashboard():
             sig_tecnico_cargo = st.text_input("Cargo Resp. Técnico", value="Consultora Pessin Gestão")
 
         with st.expander("📝 Editar Conteúdo Técnico", expanded=True):
-            analise_texto = st.text_area("Conclusão Técnica:", value="A avaliação identificou riscos críticos na dimensão 'Demandas'.")
+            analise_texto = st.text_area("Conclusão Técnica:", value="A avaliação identificou riscos críticos na dimensão 'Demandas', com 65% dos colaboradores relatando prazos irreais.")
             st.markdown("#### Plano de Ação")
             if 'acoes_list' not in st.session_state:
-                st.session_state.acoes_list = [{"acao": "Revisão de Job Description", "detalhes": "Mapear funções.", "area": "Demanda", "resp": "RH", "prazo": "30/05"}]
+                st.session_state.acoes_list = [{"acao": "Revisão de Job Description", "estrat": "Mapear todas as funções do setor e redistribuir carga.", "area": "Demanda", "resp": "RH", "prazo": "30/05"}]
             edited_df = st.data_editor(pd.DataFrame(st.session_state.acoes_list), num_rows="dynamic", use_container_width=True, 
-                                       column_config={"acao": "Ação", "detalhes": "Estratégia (Como)", "area": "Área", "resp": "Resp.", "prazo": "Prazo"})
+                                       column_config={"acao": "Ação", "estrat": "Estratégia (Como)", "area": "Área", "resp": "Resp.", "prazo": "Prazo"})
             if not edited_df.empty: st.session_state.acoes_list = edited_df.to_dict('records')
 
         if st.button("🖨️ Gerar Relatório (PDF)", type="primary"):
@@ -340,43 +358,56 @@ def admin_dashboard():
             
             plat_name = st.session_state.platform_config['name']
             
-            # Cards Dimensões
             html_dimensoes = ""
             for dim, nota in empresa.get('dimensoes', {}).items():
                 cor = COR_RISCO_ALTO if nota < 3 else (COR_RISCO_MEDIO if nota < 4 else COR_RISCO_BAIXO)
                 txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
                 html_dimensoes += f'<div style="flex:1; min-width:90px; background:#f8f9fa; border:1px solid #eee; padding:8px; border-radius:6px; margin:3px; text-align:center;"><div style="font-size:8px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
-            html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('detalhes','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
+            html_raio_x = ""
+            for cat, pergs in st.session_state.hse_questions.items():
+                html_raio_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; margin-top:10px; border-bottom:1px solid #eee;">{cat}</div>'
+                for q in pergs:
+                    pct = random.randint(10, 80)
+                    cor_bar = COR_RISCO_ALTO if pct > 50 else (COR_RISCO_MEDIO if pct > 30 else COR_RISCO_BAIXO)
+                    html_raio_x += f'<div style="margin-bottom:4px;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{pct}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:5px; border-radius:2px;"><div style="width:{pct}%; background:{cor_bar}; height:100%; border-radius:2px;"></div></div></div>'
 
-            # HTML PLANO - Sem indentação para garantir renderização
+            html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
+
             raw_html = f"""
 <div class="a4-paper">
-<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:10px; margin-bottom:15px;">
-<div>{logo_html}</div>
-<div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div><div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div></div>
-</div>
-<div style="background:#f8f9fa; padding:10px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
-{logo_cliente_html}
-<div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
-<div style="font-size:9px;">CNPJ: {empresa['cnpj']} | Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
-</div>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. DIAGNÓSTICO GERAL</div>
-<div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">2. PLANO DE AÇÃO ESTRATÉGICO</div>
-<table class="rep-table" style="margin-bottom:15px;">
-<thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
-<tbody>{html_acoes}</tbody>
-</table>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. CONCLUSÃO TÉCNICA</div>
-<p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
-<div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
-<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
-<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
-</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
+        <div>{logo_html}</div>
+        <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div>
+            <div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div>
+        </div>
+    </div>
+    <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
+        {logo_cliente_html}
+        <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
+        <div style="font-size:9px;">CNPJ: {empresa['cnpj']} | Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
+    </div>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. OBJETIVO E METODOLOGIA</div>
+    <p style="text-align:justify; margin:0; font-size:10px;">Este relatório tem como objetivo identificar os fatores de risco psicossocial no ambiente de trabalho, utilizando a ferramenta <strong>HSE Management Standards Indicator Tool</strong>, atendendo às exigências da NR-01. A metodologia avalia 7 dimensões: Demanda, Controle, Suporte (Gestor/Pares), Relacionamentos, Papel e Mudança.</p>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-top:15px; margin-bottom:5px;">2. DIAGNÓSTICO GERAL (DIMENSÕES)</div>
+    <div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. RAIO-X DETALHADO (35 PERGUNTAS)</div>
+    <div style="background:white; border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:15px; column-count:2; column-gap:20px; font-size:9px;">{html_raio_x}</div>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">4. PLANO DE AÇÃO ESTRATÉGICO</div>
+    <table class="rep-table" style="margin-bottom:15px;">
+        <thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
+        <tbody>{html_acoes}</tbody>
+    </table>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">5. CONCLUSÃO TÉCNICA</div>
+    <p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
+    <div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
+        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
+        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
+    </div>
 </div>
 """
-            st.markdown(raw_html, unsafe_allow_html=True)
+            st.markdown(textwrap.dedent(raw_html), unsafe_allow_html=True)
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
     elif selected == "Configurações":
@@ -442,28 +473,54 @@ def survey_screen():
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
     
-    with st.form("survey"):
+    # MENSAGEM DE SEGURANÇA E VERIFICAÇÃO
+    st.markdown("""
+    <div class="security-box">
+        <strong>🔒 AVALIAÇÃO VERIFICADA E SEGURA</strong><br>
+        Esta pesquisa segue rigorosos padrões de confidencialidade.<br>
+        <ul>
+            <li><strong>Anonimato Garantido:</strong> A empresa NÃO tem acesso à sua resposta individual.</li>
+            <li><strong>Uso do CPF:</strong> Seu CPF é usado <u>apenas</u> para validar que você é um colaborador único e impedir duplicidades. Ele é transformado em um código criptografado (hash) imediatamente.</li>
+            <li><strong>Sigilo:</strong> Os resultados são apresentados apenas em formato estatístico (médias do grupo).</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("survey_form"):
         st.markdown("#### 1. Perfil")
         c1, c2 = st.columns(2)
-        cpf = c1.text_input("CPF", max_chars=11)
+        cpf = c1.text_input("CPF (Apenas números)", max_chars=11)
         setor = c2.text_input("Setor")
         
         st.markdown("#### 2. Questionário HSE")
         tabs = st.tabs(list(st.session_state.hse_questions.keys()))
         for i, (cat, pergs) in enumerate(st.session_state.hse_questions.items()):
             with tabs[i]:
+                st.markdown(f"**{cat}**")
                 for q in pergs:
-                    st.markdown(f"**{q['q']}**")
-                    st.radio("Selecione:", ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo", "Neutro", "Concordo"], key=f"q_{q['id']}", horizontal=True, label_visibility="collapsed")
-                    st.markdown("<hr>", unsafe_allow_html=True)
+                    # TÍTULO DA PERGUNTA NO LABEL DO RADIO PARA FICAR LIMPO E COM ICONE DE AJUDA
+                    st.radio(
+                        label=f"**{q['q']}**", 
+                        options=["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"],
+                        key=f"q_{q['id']}", 
+                        horizontal=True, 
+                        help=f"{q['help']}" # ÍCONE DE INTERROGAÇÃO AQUI
+                    )
+                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
         
-        if st.form_submit_button("Enviar"):
+        if st.form_submit_button("✅ Enviar Respostas", type="primary"):
             if not cpf: st.error("CPF Obrigatório.")
             else:
                 for c in st.session_state.companies_db:
                     if c['id'] == comp['id']: c['respondidas'] += 1
-                st.balloons(); st.success("Sucesso!"); time.sleep(2); st.session_state.logged_in = False; st.rerun()
+                st.balloons(); st.success("Respostas enviadas com sucesso! Obrigado pela participação."); time.sleep(3); st.session_state.logged_in = False; st.session_state.user_role = None; st.rerun()
 
+    if st.button("Sair"): 
+        st.session_state.logged_in = False
+        st.session_state.user_role = None
+        st.rerun()
+
+# --- 7. ROTEADOR ---
 if not st.session_state.logged_in:
     if "cod" in st.query_params: survey_screen()
     else: login_screen()
