@@ -57,7 +57,7 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    .block-container {{ padding-top: 2rem; padding-bottom: 3rem; }}
+    .block-container {{ padding-top: 3rem; padding-bottom: 3rem; }}
     
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
@@ -206,6 +206,7 @@ if 'user_credits' not in st.session_state: st.session_state.user_credits = 0
 if 'user_linked_company' not in st.session_state: st.session_state.user_linked_company = None
 if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 if 'edit_id' not in st.session_state: st.session_state.edit_id = None
+if 'acoes_list' not in st.session_state: st.session_state.acoes_list = [] # Init lista
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def generate_mock_history():
@@ -288,7 +289,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE (CÓDIGO COMPLETO)
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -299,7 +300,7 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
         sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
         sugestoes.append({"acao": "Autonomia Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
-        sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores.", "area": "Controle"})
+        sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores para decisões.", "area": "Controle"})
         sugestoes.append({"acao": "Comitês Participativos", "estrat": "Envolver equipe em decisões.", "area": "Controle"})
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa.", "area": "Suporte"})
@@ -319,7 +320,6 @@ def gerar_banco_sugestoes(dimensoes):
     
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
-        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
     return sugestoes
 
 # ==============================================================================
@@ -384,16 +384,16 @@ def admin_dashboard():
     perm = st.session_state.admin_permission
     curr_user = st.session_state.user_username
     
-    # Filtra empresas
+    # Filtra empresas do usuário se não for Master
     if perm == "Gestor":
         visible_companies = [c for c in companies_data if c.get('owner') == curr_user]
     elif perm == "Analista":
-        linked_id = st.session_state.users_db[curr_user].get('linked_company_id')
+        linked_id = st.session_state.user_linked_company
         visible_companies = [c for c in companies_data if c['id'] == linked_id]
     else:
         visible_companies = companies_data
 
-    # Calcula Saldo
+    # Calcula Saldo de Créditos e Uso
     total_used_by_user = 0
     if perm == "Gestor":
         total_used_by_user = sum(c['respondidas'] for c in visible_companies)
@@ -403,6 +403,7 @@ def admin_dashboard():
     credits_total = st.session_state.user_credits
     credits_left = credits_total - total_used_by_user
 
+    # Definição do Menu
     menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"]
     if perm in ["Master", "Gestor"]:
         menu_options.insert(1, "Empresas")
@@ -421,6 +422,7 @@ def admin_dashboard():
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         st.caption(f"Usuário: **{curr_user}** | Perfil: **{perm}**")
         
+        # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
             st.info(f"💳 Saldo: {credits_left} avaliações")
 
@@ -431,6 +433,7 @@ def admin_dashboard():
     if selected == "Visão Geral":
         st.title("Painel Administrativo")
         
+        # Filtro Global
         lista_empresas_filtro = ["Todas"] + [c['razao'] for c in visible_companies]
         empresa_filtro = st.selectbox("Filtrar por Empresa", lista_empresas_filtro)
         
@@ -440,6 +443,7 @@ def admin_dashboard():
             responses_filtered = [r for r in responses_data if r['company_id'] == target_id]
         else:
             companies_filtered = visible_companies
+            # Filtra respostas apenas das empresas visíveis
             ids_visiveis = [c['id'] for c in visible_companies]
             responses_filtered = [r for r in responses_data if r['company_id'] in ids_visiveis]
 
@@ -511,7 +515,6 @@ def admin_dashboard():
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.subheader("✏️ Editar Empresa")
             emp_edit = next((c for c in st.session_state.companies_db if c['id'] == st.session_state.edit_id), None)
-            
             if emp_edit:
                 with st.form("edit_form"):
                     c1, c2, c3 = st.columns(3)
@@ -523,8 +526,6 @@ def admin_dashboard():
                     idx_risco = risco_opts.index(emp_edit['risco']) if emp_edit['risco'] in risco_opts else 0
                     new_risco = c4.selectbox("Risco", risco_opts, index=idx_risco)
                     new_func = c5.number_input("Vidas", min_value=1, value=emp_edit['func'])
-                    
-                    # Edição de Cota Específica
                     new_limit = c6.number_input("Cota da Empresa", min_value=1, value=emp_edit.get('limit_evals', 100))
                     
                     seg_opts = ["GHE", "Setor", "GES"]
@@ -573,7 +574,7 @@ def admin_dashboard():
             with tab2:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 with st.form("add_comp"):
-                    if credits_left <= 0:
+                    if credits_left <= 0 and perm != "Master": # MASTER NUNCA BLOQUEIA
                         st.error("🚫 Você não possui créditos suficientes para cadastrar novas empresas.")
                         st.form_submit_button("Bloqueado", disabled=True)
                     else:
@@ -586,7 +587,7 @@ def admin_dashboard():
                         risco = c4.selectbox("Risco", [1,2,3,4])
                         func = c5.number_input("Vidas", min_value=1)
                         # Validação de cota
-                        limit_evals = c6.number_input("Cota de Avaliações", min_value=1, max_value=credits_left, value=min(100, credits_left))
+                        limit_evals = c6.number_input("Cota de Avaliações", min_value=1, value=100)
                         
                         c7, c8, c9 = st.columns(3)
                         segmentacao = c7.selectbox("Segmentação", ["GHE", "Setor", "GES"])
@@ -761,14 +762,14 @@ def admin_dashboard():
                     txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
                     html_dimensoes += f'<div style="flex:1; min-width:80px; background:#f8f9fa; border:1px solid #eee; padding:5px; border-radius:4px; margin:2px; text-align:center; font-family:sans-serif;"><div style="font-size:9px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
-            # Raio-X Detalhado
+            # Raio-X Detalhado (Todas 35 perguntas)
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante que exibe todas as 35 perguntas
+            # Garante que todas as perguntas sejam listadas
             for cat, pergs in st.session_state.hse_questions.items():
                  html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee; font-family:sans-serif;">{cat}</div>'
                  for q in pergs:
-                     val = detalhes.get(q['q'], 0) # 0 se nao tiver resposta
+                     val = detalhes.get(q['q'], 0) # Se não tiver resposta, mostra 0
                      c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
                      if val == 0: c_bar = "#ddd"
                      html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
@@ -864,7 +865,7 @@ def admin_dashboard():
             st.components.v1.html(raw_html, height=800, scrolling=True)
 
     elif selected == "Histórico & Comparativo":
-        st.title("Histórico & Comparativo")
+        st.title("Histórico")
         if not visible_companies: st.warning("Cadastre empresas."); return
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
         empresa = next(c for c in visible_companies if c['razao'] == empresa_nome)
