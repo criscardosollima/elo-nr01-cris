@@ -112,12 +112,12 @@ st.markdown(f"""
 # 3. DADOS
 # ==============================================================================
 if 'users_db' not in st.session_state:
-    # ESTRUTURA ATUALIZADA COM NÍVEIS DE ACESSO
+    # Estrutura Local Atualizada para suportar roles
     st.session_state.users_db = {
-        "admin": {"password": "admin", "role": "Master"},      # Acesso Total
-        "cris": {"password": "123", "role": "Master"},         # Acesso Total
-        "gestor": {"password": "123", "role": "Gestor"},       # Sem excluir/config
-        "analista": {"password": "123", "role": "Analista"}    # Só visualiza
+        "admin": {"password": "admin", "role": "Master"},
+        "cris": {"password": "123", "role": "Master"},
+        "gestor": {"password": "123", "role": "Gestor"},
+        "analista": {"password": "123", "role": "Analista"}
     }
 
 if 'companies_db' not in st.session_state:
@@ -166,8 +166,8 @@ if 'hse_questions' not in st.session_state:
         "Suporte Pares": [
             {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "rev": False, "help": "Ex: Apoio da equipe."},
             {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "rev": False, "help": "Ex: Tratamento cordial."},
-            {"id": 27, "q": "Colegas me ouvem sobre problemas?", "rev": False, "help": "Ex: Desabafo técnico."},
-            {"id": 31, "q": "Colegas ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade."}
+            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "rev": False, "help": "Ex: Desabafo técnico."},
+            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade."}
         ],
         "Relacionamentos": [
             {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas."},
@@ -272,49 +272,25 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 50+ AÇÕES HSE (CÓDIGO COMPLETO)
-    # 1. DEMANDAS
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
-        sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos baseados na capacidade.", "area": "Demandas"})
-        sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h.", "area": "Demandas"})
-        sugestoes.append({"acao": "Contratação Sazonal", "estrat": "Recursos extras em picos.", "area": "Demandas"})
-        sugestoes.append({"acao": "Automação", "estrat": "Automatizar tarefas repetitivas.", "area": "Demandas"})
-    # 2. CONTROLE
     if dimensoes.get("Controle", 5) < 3.8:
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
-        sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
-        sugestoes.append({"acao": "Autonomia Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
-        sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores para decisões.", "area": "Controle"})
-        sugestoes.append({"acao": "Comitês Participativos", "estrat": "Envolver equipe em decisões.", "area": "Controle"})
-    # 3. SUPORTE
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa.", "area": "Suporte"})
         sugestoes.append({"acao": "Mentoria Buddy", "estrat": "Padrinhos para novos colaboradores.", "area": "Suporte"})
-        sugestoes.append({"acao": "Reuniões 1:1", "estrat": "Feedbacks quinzenais de bem-estar.", "area": "Suporte"})
-        sugestoes.append({"acao": "Feedback Estruturado", "estrat": "Cultura de feedback contínuo.", "area": "Suporte"})
-        sugestoes.append({"acao": "Grupos de Apoio", "estrat": "Troca de experiências.", "area": "Suporte"})
-        sugestoes.append({"acao": "Reconhecimento", "estrat": "Rituais de celebração.", "area": "Suporte"})
-    # 4. RELACIONAMENTOS
     if dimensoes.get("Relacionamentos", 5) < 3.8:
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
-    # 5. PAPEL E MUDANÇA
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
-        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
-        sugestoes.append({"acao": "Alinhamento Metas", "estrat": "Revisão semestral de objetivos.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
-        sugestoes.append({"acao": "Consulta Prévia", "estrat": "Focus groups antes de mudanças.", "area": "Mudança"})
     
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
-        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
     return sugestoes
 
 # ==============================================================================
@@ -346,14 +322,15 @@ def login_screen():
                     except: pass
                 
                 # Tenta Local
-                if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user]['password'] == pwd:
+                # Adicionado .get('password') para suportar a estrutura de dicionário local
+                if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user].get('password') == pwd:
                     login_ok = True
-                    user_role_type = st.session_state.users_db[user]['role']
+                    user_role_type = st.session_state.users_db[user].get('role', 'Analista')
                 
                 if login_ok:
                     st.session_state.logged_in = True
                     st.session_state.user_role = 'admin'
-                    st.session_state.admin_permission = user_role_type # Define permissão (Master, Gestor, Analista)
+                    st.session_state.admin_permission = user_role_type 
                     st.rerun()
                 else: st.error("Dados incorretos.")
         st.caption("Colaboradores: Utilizem o link fornecido pelo RH.")
@@ -361,10 +338,8 @@ def login_screen():
 def admin_dashboard():
     companies_data, responses_data = load_data_from_db()
     
-    # PERMISSÕES DO MENU
     perm = st.session_state.admin_permission
-    
-    menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"] # Básico para Analista
+    menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"]
     
     if perm in ["Master", "Gestor"]:
         menu_options.insert(1, "Empresas")
@@ -490,12 +465,11 @@ def admin_dashboard():
                         pendentes = emp['func'] - emp['respondidas']
                         c3.write(f"**Vidas:** {emp['func']} | **Pendentes:** {pendentes}")
                         
-                        # Botões de Ação Condicionados ao Nível de Acesso
+                        # Botões de Ação
                         c4_1, c4_2 = c4.columns(2)
                         if c4_1.button("✏️", key=f"ed_{idx}"): 
                             st.session_state.edit_mode = True; st.session_state.edit_id = emp['id']; st.rerun()
                         
-                        # Apenas Master pode excluir
                         if perm == "Master":
                             if c4_2.button("🗑️", key=f"del_{idx}"): st.session_state.companies_db.pop(idx); st.rerun()
             
@@ -531,10 +505,8 @@ def admin_dashboard():
         empresa_idx = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
         if empresa_idx is not None:
             empresa = st.session_state.companies_db[empresa_idx]
-            # Garante listas
             if 'setores_lista' not in empresa: empresa['setores_lista'] = ["Geral"]
             if 'cargos_lista' not in empresa: empresa['cargos_lista'] = ["Geral"]
-
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
@@ -620,6 +592,8 @@ def admin_dashboard():
                             novas.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
                 st.session_state.acoes_list.extend(novas)
                 st.success("Adicionado!")
+            
+            if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
             st.markdown("##### 3. Tabela Final")
             edited_df = st.data_editor(pd.DataFrame(st.session_state.acoes_list), num_rows="dynamic", use_container_width=True, column_config={"acao": "Ação", "estrat": st.column_config.TextColumn("Estratégia", width="large"), "area": "Área", "resp": "Responsável", "prazo": "Prazo"})
             if not edited_df.empty: st.session_state.acoes_list = edited_df.to_dict('records')
@@ -757,6 +731,9 @@ def admin_dashboard():
                  np = c_u2.text_input("Senha", type="password")
                  nr = c_u3.selectbox("Perfil", ["Master", "Gestor", "Analista"])
                  if st.button("Adicionar"):
+                     if DB_CONNECTED:
+                         # Implementar insert supabase user aqui
+                         pass 
                      st.session_state.users_db[nu] = {"password": np, "role": nr}; st.success("OK")
                  st.markdown("</div>", unsafe_allow_html=True)
             with t3:
