@@ -250,7 +250,7 @@ def load_data_from_db():
 def get_logo_html(width=180):
     if st.session_state.platform_config['logo_b64']:
         return f'<img src="data:image/png;base64,{st.session_state.platform_config["logo_b64"]}" width="{width}">'
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="{width}"><style>.t1 {{ font-family: sans-serif; font-weight: bold; font-size: 45px; fill: {COR_PRIMARIA}; }} .t2 {{ font-family: sans-serif; font-weight: 300; font-size: 45px; fill: {COR_SECUNDARIA}; }}</style><path d="M20,35 L50,35 A15,15 0 0 1 50,65 L20,65 A15,15 0 0 1 20,35 Z" fill="none" stroke="{COR_SECUNDARIA}" stroke-width="8" /><path d="M45,35 L75,35 A15,15 0 0 1 75,65 L45,65 A15,15 0 0 1 45,35 Z" fill="none" stroke="{COR_PRIMARIA}" stroke-width="8" /><text x="100" y="68" class="t1">Elo</text><text x="180" y="68" class="t2">NR-01</text></svg>"""
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="{width}"><style>.t1 {{ font-family: sans-serif; font-weight: bold; font-size: 50px; fill: {COR_PRIMARIA}; }} .t2 {{ font-family: sans-serif; font-weight: 300; font-size: 50px; fill: {COR_SECUNDARIA}; }}</style><path d="M20,35 L50,35 A15,15 0 0 1 50,65 L20,65 A15,15 0 0 1 20,35 Z" fill="none" stroke="{COR_SECUNDARIA}" stroke-width="8" /><path d="M45,35 L75,35 A15,15 0 0 1 75,65 L45,65 A15,15 0 0 1 45,35 Z" fill="none" stroke="{COR_PRIMARIA}" stroke-width="8" /><text x="100" y="68" class="t1">Elo</text><text x="180" y="68" class="t2">NR-01</text></svg>"""
     b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
     return f'<img src="data:image/svg+xml;base64,{b64}">'
 
@@ -286,7 +286,7 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 50+ AÇÕES HSE
+    # 50+ AÇÕES HSE (CÓDIGO COMPLETO)
     if dimensoes.get("Demandas", 5) < 3.8:
         sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
@@ -300,6 +300,7 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
         sugestoes.append({"acao": "Autonomia Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
         sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores.", "area": "Controle"})
+        sugestoes.append({"acao": "Comitês Participativos", "estrat": "Envolver equipe em decisões.", "area": "Controle"})
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa.", "area": "Suporte"})
         sugestoes.append({"acao": "Mentoria Buddy", "estrat": "Padrinhos para novos colaboradores.", "area": "Suporte"})
@@ -309,13 +310,16 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
+        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
     
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
+        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
     return sugestoes
 
 # ==============================================================================
@@ -336,6 +340,8 @@ def login_screen():
             if st.form_submit_button("Entrar", type="primary", use_container_width=True):
                 login_ok = False
                 user_role_type = "Analista"
+                user_credits = 0
+                linked_comp = None
                 
                 # Tenta DB
                 if DB_CONNECTED:
@@ -344,20 +350,31 @@ def login_screen():
                         if res.data: 
                             login_ok = True
                             user_data = res.data[0]
-                            user_role_type = user_data.get('role', 'Master') 
+                            user_role_type = user_data.get('role', 'Master')
+                            user_credits = user_data.get('credits', 0)
+                            linked_comp = user_data.get('linked_company_id')
                     except: pass
                 
                 # Tenta Local
                 if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user].get('password') == pwd:
                     login_ok = True
-                    user_role_type = st.session_state.users_db[user].get('role', 'Analista')
+                    user_data = st.session_state.users_db[user]
+                    user_role_type = user_data.get('role', 'Analista')
+                    user_credits = user_data.get('credits', 0)
+                    linked_comp = user_data.get('linked_company_id')
                 
                 if login_ok:
-                    st.session_state.logged_in = True
-                    st.session_state.user_role = 'admin'
-                    st.session_state.admin_permission = user_role_type 
-                    st.session_state.user_username = user 
-                    st.rerun()
+                    valid_until = user_data.get('valid_until')
+                    if valid_until and datetime.datetime.today().isoformat() > valid_until:
+                        st.error("🚫 O acesso deste usuário expirou.")
+                    else:
+                        st.session_state.logged_in = True
+                        st.session_state.user_role = 'admin'
+                        st.session_state.admin_permission = user_role_type 
+                        st.session_state.user_username = user
+                        st.session_state.user_credits = user_credits
+                        st.session_state.user_linked_company = linked_comp
+                        st.rerun()
                 else: st.error("Dados incorretos.")
         st.caption("Colaboradores: Utilizem o link fornecido pelo RH.")
 
@@ -367,7 +384,7 @@ def admin_dashboard():
     perm = st.session_state.admin_permission
     curr_user = st.session_state.user_username
     
-    # Filtra empresas do usuário se não for Master
+    # Filtra empresas
     if perm == "Gestor":
         visible_companies = [c for c in companies_data if c.get('owner') == curr_user]
     elif perm == "Analista":
@@ -376,7 +393,7 @@ def admin_dashboard():
     else:
         visible_companies = companies_data
 
-    # Calcula Saldo de Créditos e Uso
+    # Calcula Saldo
     total_used_by_user = 0
     if perm == "Gestor":
         total_used_by_user = sum(c['respondidas'] for c in visible_companies)
@@ -386,7 +403,6 @@ def admin_dashboard():
     credits_total = st.session_state.user_credits
     credits_left = credits_total - total_used_by_user
 
-    # Definição do Menu
     menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"]
     if perm in ["Master", "Gestor"]:
         menu_options.insert(1, "Empresas")
@@ -405,7 +421,6 @@ def admin_dashboard():
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         st.caption(f"Usuário: **{curr_user}** | Perfil: **{perm}**")
         
-        # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
             st.info(f"💳 Saldo: {credits_left} avaliações")
 
@@ -416,7 +431,6 @@ def admin_dashboard():
     if selected == "Visão Geral":
         st.title("Painel Administrativo")
         
-        # Filtro Global
         lista_empresas_filtro = ["Todas"] + [c['razao'] for c in visible_companies]
         empresa_filtro = st.selectbox("Filtrar por Empresa", lista_empresas_filtro)
         
@@ -426,7 +440,6 @@ def admin_dashboard():
             responses_filtered = [r for r in responses_data if r['company_id'] == target_id]
         else:
             companies_filtered = visible_companies
-            # Filtra respostas apenas das empresas visíveis
             ids_visiveis = [c['id'] for c in visible_companies]
             responses_filtered = [r for r in responses_data if r['company_id'] in ids_visiveis]
 
@@ -494,7 +507,6 @@ def admin_dashboard():
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
-        
         if st.session_state.edit_mode:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.subheader("✏️ Editar Empresa")
@@ -573,7 +585,7 @@ def admin_dashboard():
                         c4, c5, c6 = st.columns(3)
                         risco = c4.selectbox("Risco", [1,2,3,4])
                         func = c5.number_input("Vidas", min_value=1)
-                        # Validação de cota: não pode ser maior que o saldo do consultor
+                        # Validação de cota
                         limit_evals = c6.number_input("Cota de Avaliações", min_value=1, max_value=credits_left, value=min(100, credits_left))
                         
                         c7, c8, c9 = st.columns(3)
@@ -595,12 +607,8 @@ def admin_dashboard():
 
                         if st.form_submit_button("Cadastrar Empresa e Usuário"):
                             logo_str = image_to_base64(logo_cliente)
-                            
-                            # 1. Cria Empresa
                             new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "limit_evals": limit_evals, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "valid_until": valid_date.isoformat(), "logo_b64": logo_str, "score": 0, "respondidas": 0, "owner": curr_user, "dimensoes": {}, "detalhe_perguntas": {}, "org_structure": {"Geral": ["Geral"]}}
                             st.session_state.companies_db.append(new_c)
-                            
-                            # 2. Cria Usuário Analista
                             if u_login and u_pass:
                                 st.session_state.users_db[u_login] = {
                                     "password": u_pass, 
@@ -609,7 +617,6 @@ def admin_dashboard():
                                     "valid_until": valid_date.isoformat(),
                                     "linked_company_id": cod 
                                 }
-                            
                             st.success("Empresa e Acesso cadastrados com sucesso!")
                             st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -945,8 +952,57 @@ def admin_dashboard():
     elif selected == "Configurações":
         if perm == "Master":
             st.title("Configurações")
-            t1, t2, t3 = st.tabs(["Identidade", "Acessos", "Sistema"])
+            t1, t2, t3 = st.tabs(["Usuários (Consultores)", "Sistema", "Identidade"])
             with t1:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                # Tabela de Usuários com Botão de Exclusão
+                st.write("### Usuários Cadastrados")
+                
+                # Prepara dados para exibição
+                users_list = []
+                for u, d in st.session_state.users_db.items():
+                    users_list.append({"User": u, "Role": d.get('role'), "Credits": d.get('credits')})
+                
+                st.dataframe(pd.DataFrame(users_list), use_container_width=True)
+
+                st.markdown("---")
+                st.write("#### Adicionar Novo Usuário")
+                c1, c2 = st.columns(2)
+                u_login = c1.text_input("Login")
+                u_pass = c2.text_input("Senha", type="password")
+                
+                c3, c4, c5 = st.columns(3)
+                u_role = c3.selectbox("Perfil", ["Master", "Gestor", "Analista"])
+                u_credits = c4.number_input("Créditos", min_value=0, value=100)
+                u_valid = c5.date_input("Validade", value=datetime.date.today() + datetime.timedelta(days=365))
+                
+                if st.button("Criar Usuário"):
+                    st.session_state.users_db[u_login] = {
+                        "password": u_pass, "role": u_role, 
+                        "credits": u_credits, "valid_until": u_valid.isoformat()
+                    }
+                    st.success("Usuário criado!")
+                    st.rerun()
+
+                st.markdown("---")
+                st.write("#### Excluir Usuário")
+                # Dropdown para excluir (exceto o próprio usuário logado)
+                users_to_del = [u for u in st.session_state.users_db.keys() if u != curr_user]
+                u_del = st.selectbox("Selecione para excluir", users_to_del)
+                
+                if st.button("🗑️ Excluir Selecionado"):
+                    del st.session_state.users_db[u_del]
+                    st.success(f"Usuário {u_del} excluído!")
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            with t2:
+                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                 st.subheader("Integração Supabase")
+                 st.info(f"Status Conexão: {'Conectado ✅' if DB_CONNECTED else 'Offline (Mock) ⚠️'}")
+                 st.markdown("</div>", unsafe_allow_html=True)
+            
+            with t3:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
                 nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
@@ -957,41 +1013,7 @@ def admin_dashboard():
                     if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-            with t2:
-                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                 st.write("Gestão de Usuários")
-                 st.dataframe(pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Dados']), use_container_width=True)
-                 c_u1, c_u2, c_u3 = st.columns(3)
-                 nu = c_u1.text_input("Novo Usuário")
-                 np = c_u2.text_input("Senha", type="password")
-                 nr = c_u3.selectbox("Perfil", ["Master", "Gestor", "Analista"])
-                 
-                 c_u4, c_u5 = st.columns(2)
-                 u_credits = c_u4.number_input("Créditos (Avaliações)", min_value=0, value=100)
-                 u_valid = c_u5.date_input("Validade do Acesso", value=datetime.date.today() + datetime.timedelta(days=365))
-                 
-                 if st.button("Adicionar"):
-                     st.session_state.users_db[nu] = {"password": np, "role": nr, "credits": u_credits, "valid_until": u_valid.isoformat()}
-                     st.success("OK")
-                     st.rerun()
-                 
-                 # Botão Excluir
-                 st.markdown("---")
-                 st.write("#### Excluir Usuário")
-                 users_to_del = [u for u in st.session_state.users_db.keys() if u != curr_user]
-                 u_del = st.selectbox("Selecione para excluir", users_to_del)
-                 if st.button("🗑️ Excluir Selecionado"):
-                     del st.session_state.users_db[u_del]
-                     st.success(f"Usuário {u_del} excluído!")
-                     st.rerun()
-                 st.markdown("</div>", unsafe_allow_html=True)
-            with t3:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                nu = st.text_input("URL Base", value=st.session_state.platform_config.get('base_url', ''))
-                if st.button("Salvar URL"): 
-                    st.session_state.platform_config['base_url'] = nu
-                    st.success("OK")
-                st.markdown("</div>", unsafe_allow_html=True)
+
         else:
             st.error("Acesso restrito a usuários Master.")
 
