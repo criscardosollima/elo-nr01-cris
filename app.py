@@ -51,20 +51,20 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    .block-container {{ padding-top: 1rem; padding-bottom: 2rem; }}
+    .block-container {{ padding-top: 1rem; padding-bottom: 3rem; }}
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards KPI (Ajuste de Altura e Espaçamento) */
+    /* Cards KPI (Altura automática para não cortar) */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
         margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; 
-        min-height: 140px; height: auto;
+        min-height: 120px; height: auto;
     }}
-    .kpi-top {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }}
+    .kpi-top {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }}
     .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }}
-    .kpi-title {{ font-size: 13px; color: #7f8c8d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; }}
-    .kpi-value {{ font-size: 28px; font-weight: 700; color: {COR_PRIMARIA}; }}
+    .kpi-title {{ font-size: 12px; color: #7f8c8d; font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }}
+    .kpi-value {{ font-size: 26px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
     
     /* Cores Ícones */
     .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
@@ -78,7 +78,7 @@ st.markdown(f"""
     /* Caixa de Segurança */
     .security-alert {{
         padding: 1rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
-        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;
+        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1rem; font-family: 'Inter', sans-serif;
     }}
     
     /* Relatório A4 */
@@ -93,10 +93,10 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider para parecer régua (Bolinhas) */
+    /* Ajuste Slider para parecer régua */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
     div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
-    
+
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
         .a4-paper {{ box-shadow: none; margin: 0; padding: 0; width: 100%; }}
@@ -119,7 +119,7 @@ if 'companies_db' not in st.session_state:
             "logo_b64": None, "score": 2.8, "respondidas": 15,
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {},
-             "setores_lista": ["Administrativo", "Produção", "Logística", "Comercial"],
+             "setores_lista": ["Administrativo", "Produção", "Logística"],
              "cargos_lista": ["Analista", "Operador", "Gerente"]
         }
     ]
@@ -161,7 +161,7 @@ if 'hse_questions' not in st.session_state:
         "Relacionamentos": [
             {"id": 5, "q": "Estou sujeito a assédio pessoal (palavras/comportamentos)?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
             {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Clima pesado, fofocas ou brigas."},
-            {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
+            {"id": 21, "q": "Estou sujeito(a) a bullying no trabalho?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
             {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
         ],
         "Papel": [
@@ -215,7 +215,6 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
-        # Mock responses
         mock_responses = []
         for c in st.session_state.companies_db:
              for _ in range(c['respondidas']):
@@ -247,7 +246,7 @@ def gerar_analise_robusta(dimensoes):
     if riscos:
         texto += f"A análise quantitativa evidenciou que as dimensões **{', '.join(riscos)}** encontram-se em zona de risco crítico (Score < 3.0). Estes fatores, quando negligenciados, estão estatisticamente correlacionados ao aumento de estresse, absenteísmo e turnover. "
     else:
-        texto += "A análise indica um ambiente de trabalho equilibrado, com fatores de proteção atuantes. As dimensões avaliadas encontram-se dentro dos parâmetros aceitáveis de saúde mental. "
+        texto += "A análise indica um ambiente de trabalho equilibrado, com fatores de proteção atuantes. As dimensões avaliadas encontram-se dentro dos parâmetros aceitáveis de saúde mental, sugerindo boas práticas de gestão."
     texto += " Recomenda-se a implementação imediata do plano de ação estipulado para mitigar riscos e fortalecer a cultura de segurança psicossocial."
     return texto
 
@@ -256,16 +255,13 @@ def gerar_banco_sugestoes(dimensoes):
     # BANCO DE AÇÕES COMPLETO (50+ OPÇÕES)
     # 1. DEMANDAS
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Censo de tarefas por função.", "area": "Demandas"})
-        sugestoes.append({"acao": "Matriz Eisenhower", "estrat": "Treinar priorização urgente x importante.", "area": "Demandas"})
-        sugestoes.append({"acao": "Revisão de Prazos (SLA)", "estrat": "Negociar prazos realistas.", "area": "Demandas"})
-        sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Pausas de 10 min a cada 2h.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower (Urgente x Importante).", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
+        sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos baseados na capacidade real.", "area": "Demandas"})
+        sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h.", "area": "Demandas"})
         sugestoes.append({"acao": "Contratação Sazonal", "estrat": "Recursos extras em picos.", "area": "Demandas"})
         sugestoes.append({"acao": "Automação", "estrat": "Automatizar tarefas repetitivas.", "area": "Demandas"})
-        sugestoes.append({"acao": "Definição de Escopo", "estrat": "Evitar aumento não planejado de escopo.", "area": "Demandas"})
-        sugestoes.append({"acao": "Gestão do Tempo", "estrat": "Capacitação em Pomodoro/Time Blocking.", "area": "Demandas"})
-
     # 2. CONTROLE
     if dimensoes.get("Controle", 5) < 3.8:
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
@@ -273,8 +269,6 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Comitês Participativos", "estrat": "Incluir operacional no planejamento.", "area": "Controle"})
         sugestoes.append({"acao": "Autonomia na Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
         sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores para decisões.", "area": "Controle"})
-        sugestoes.append({"acao": "Grupos de Melhoria", "estrat": "Colaboradores sugerem melhorias.", "area": "Controle"})
-
     # 3. SUPORTE
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa e empatia.", "area": "Suporte"})
@@ -282,36 +276,24 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Reuniões One-on-One", "estrat": "Feedbacks quinzenais de bem-estar.", "area": "Suporte"})
         sugestoes.append({"acao": "Grupos de Apoio", "estrat": "Troca de experiências entre pares.", "area": "Suporte"})
         sugestoes.append({"acao": "Feedback Estruturado", "estrat": "Cultura de feedback contínuo.", "area": "Suporte"})
-        sugestoes.append({"acao": "Reconhecimento", "estrat": "Rituais de celebração de conquistas.", "area": "Suporte"})
-        sugestoes.append({"acao": "Plantão RH", "estrat": "Canal direto para suporte emocional.", "area": "Suporte"})
-
     # 4. RELACIONAMENTOS
     if dimensoes.get("Relacionamentos", 5) < 3.8:
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta e Ética.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Team Building", "estrat": "Eventos de integração e confiança.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Acordos de Convivência", "estrat": "Manual de boas práticas da equipe.", "area": "Relacionamentos"})
-
     # 5. PAPEL E MUDANÇA
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Description", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
         sugestoes.append({"acao": "Alinhamento de Metas", "estrat": "Revisão semestral de objetivos.", "area": "Papel"})
         sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
-        sugestoes.append({"acao": "Matriz RACI", "estrat": "Definir papéis em projetos.", "area": "Papel"})
-
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
         sugestoes.append({"acao": "Consulta Prévia", "estrat": "Focus groups antes de mudanças.", "area": "Mudança"})
-        sugestoes.append({"acao": "Embaixadores", "estrat": "Colaboradores chave apoiando transição.", "area": "Mudança"})
-        sugestoes.append({"acao": "Cronograma Visível", "estrat": "Timeline clara das etapas.", "area": "Mudança"})
-
-    # Default
+    
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
         sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
-        
     return sugestoes
 
 # --- 5. TELAS DO SISTEMA ---
@@ -554,11 +536,11 @@ def admin_dashboard():
                 except: st.error("Erro no download.")
             st.markdown("---")
             st.markdown("##### 💬 Mensagem de Convite")
-            texto_convite = f"""Olá, time {empresa['razao']}! 👋\n\nCuidar da nossa operação e dos nossos resultados é importante, mas nada disso faz sentido se não cuidarmos, primeiro, de quem faz tudo acontecer: você.\nEstamos iniciando a nossa Avaliação de Riscos Psicossociais e queremos te convidar para uma conversa sincera. Mas, afinal, por que isso é tão importante?\n\n🧠 **Por que participar?**\nMuitas vezes, o estresse, a carga de trabalho ou a dinâmica do dia a dia podem impactar nosso bem-estar de formas invisíveis. Responder a esta avaliação não é apenas preencher um formulário; é nos dar a ferramenta necessária para:\n\n* Identificar pontos de melhoria no nosso ambiente de trabalho.\n* Criar ações práticas que promovam mais equilíbrio e saúde mental.\n* Construir uma cultura onde todos se sintam ouvidos e respeitados.\n\n🔒 **Sua segurança é nossa prioridade**\nSabemos que falar sobre sentimentos e percepções exige confiança. Por isso, queremos reforçar dois pontos inegociáveis:\n\n* **Anonimato Total:** O sistema foi configurado para que nenhuma resposta seja vinculada ao seu nome ou e-mail.\n* **Sigilo Absoluto:** Os dados são analisados de forma coletiva (por setores ou empresa geral). Ninguém terá acesso às suas respostas individuais.\n\nO seu "sincerômetro" é o que nos ajuda a evoluir. Não existem respostas certas ou erradas, apenas a sua percepção real sobre o seu cotidiano conosco.\n\n🚀 **Como participar?**\nBasta clicar no link abaixo. O preenchimento leva cerca de 7 minutos.\n{link_final}\n\nContamos com a sua voz para construirmos, juntos, um lugar cada vez melhor para se trabalhar.\n\nCom carinho,\nEquipe de Gestão de Pessoas / Saúde Ocupacional"""
-            st.text_area("Mensagem WhatsApp:", value=texto_convite, height=350)
+            texto_convite = f"""*Pesquisa de Clima - {empresa['razao']}* 🌟\n\nOlá equipe! A **Pessin Gestão** iniciou o programa *Elo NR-01* para cuidar do que temos de mais valioso: **nós mesmos**.\n\n🛡️ **É seguro?** Sim! A pesquisa é 100% anônima.\n🔒 **É rápido?** Leva menos de 5 minutos.\n\n👇 **Clique no link para responder:**\n{link_final}\n\nContamos com você!"""
+            st.text_area("Mensagem WhatsApp:", value=texto_convite, height=200)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- HISTÓRICO & COMPARATIVO ---
+    # --- HISTÓRICO & COMPARATIVO (MANTIDO E MELHORADO) ---
     elif selected == "Histórico & Comparativo":
         st.title("Histórico & Comparativo")
         if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
@@ -612,6 +594,7 @@ def admin_dashboard():
                     <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
                         {logo_cliente_html}
                         <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
+                        <div style="font-size:9px;">CNPJ: {empresa.get('cnpj','')} | Endereço: {empresa.get('endereco','-')}</div>
                         <div style="font-size:9px;">Períodos Comparados: {periodo_a} vs {periodo_b}</div>
                     </div>
                     <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px;">1. RESUMO DOS INDICADORES</div>
@@ -789,10 +772,8 @@ def survey_screen():
 
     comp = st.session_state.current_company
     logo_show = get_logo_html(150)
-    # Tenta pegar logo do banco ou local
-    logo_cli = comp.get('logo_b64')
-    if logo_cli:
-        logo_show = f"<img src='data:image/png;base64,{logo_cli}' width='150'>"
+    if comp.get('logo_b64'):
+        logo_show = f"<img src='data:image/png;base64,{comp.get('logo_b64')}' width='150'>"
     
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
@@ -803,7 +784,6 @@ def survey_screen():
         c1, c2 = st.columns(2)
         cpf = c1.text_input("CPF (Apenas números)", max_chars=11)
         
-        # CARREGAMENTO INTELIGENTE DE OPÇÕES
         lista_setores = comp.get('setores_lista', ["Geral"])
         if isinstance(lista_setores, str): lista_setores = ["Geral"] # Fallback se vier string
 
