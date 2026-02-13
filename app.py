@@ -42,32 +42,27 @@ COR_FUNDO = "#f4f6f9"
 COR_RISCO_ALTO = "#ef5350"
 COR_RISCO_MEDIO = "#ffa726"
 COR_RISCO_BAIXO = "#66bb6a"
-COR_COMP_A = "#3498db" 
-COR_COMP_B = "#9b59b6"
 
-# --- 2. CSS OTIMIZADO ---
+# --- 2. CSS OTIMIZADO (CORREÇÃO DE LAYOUT) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    .block-container {{ padding-top: 1rem; padding-bottom: 2rem; }}
+    .block-container {{ padding-top: 2rem; padding-bottom: 3rem; }}
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards KPI */
+    /* Cards KPI (Altura Automática para não cortar texto) */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
-        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 120px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
+        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between;
+        min-height: 120px; height: auto; /* Correção do bug de corte */
     }}
-    .kpi-title {{ font-size: 12px; color: #7f8c8d; font-weight: 600; margin-top: 8px; text-transform: uppercase; }}
-    .kpi-value {{ font-size: 26px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 0px; }}
-    .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }}
-    
-    /* Comparativo Delta */
-    .delta-pos {{ color: {COR_RISCO_BAIXO}; font-weight: bold; font-size: 0.9em; }}
-    .delta-neg {{ color: {COR_RISCO_ALTO}; font-weight: bold; font-size: 0.9em; }}
-    .delta-neu {{ color: #999; font-weight: bold; font-size: 0.9em; }}
+    .kpi-top {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }}
+    .kpi-icon-box {{ width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }}
+    .kpi-title {{ font-size: 12px; color: #7f8c8d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }}
+    .kpi-value {{ font-size: 24px; font-weight: 700; color: {COR_PRIMARIA}; }}
     
     /* Cores Ícones */
     .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
@@ -76,18 +71,18 @@ st.markdown(f"""
     .bg-red {{ background-color: #ffebee; color: #d32f2f; }}
 
     /* Containers */
-    .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
+    .chart-container {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px; }}
 
     /* Caixa de Segurança */
     .security-alert {{
         padding: 1rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
-        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1rem; font-family: 'Inter', sans-serif;
+        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;
     }}
     
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
-        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.6;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5;
     }}
     .link-area {{ background-color: #f8f9fa; border: 1px dashed #dee2e6; padding: 15px; border-radius: 8px; font-family: monospace; color: #2c3e50; font-weight: bold; word-break: break-all; }}
     
@@ -96,9 +91,10 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
+    /* Ajuste Slider para parecer régua (Bolinhas) */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
-    div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 500; }}
-
+    div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
+    
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
         .a4-paper {{ box-shadow: none; margin: 0; padding: 0; width: 100%; }}
@@ -121,8 +117,8 @@ if 'companies_db' not in st.session_state:
             "logo_b64": None, "score": 2.8, "respondidas": 15,
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {},
-             "setores_lista": ["Administrativo", "Produção", "Logística"],
-             "cargos_lista": ["Analista", "Operador", "Gerente"]
+             "setores_lista": ["Administrativo", "Produção", "Logística", "Comercial"],
+             "cargos_lista": ["Analista", "Operador", "Gerente", "Assistente"]
         }
     ]
 
@@ -131,52 +127,52 @@ if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
             {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "rev": True, "help": "Ex: Receber tarefas às 17h para entregar às 18h."},
-            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Sentir que precisa fazer hora extra sempre para dar conta."},
-            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
-            {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
-            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
-            {"id": 18, "q": "Sou pressionado(a) por diferentes grupos?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
-            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético constante."},
-            {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas que humanamente não dá para bater."}
+            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Ex: Hora extra constante."},
+            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Sem tempo para respirar."},
+            {"id": 12, "q": "Tenho que negligenciar tarefas?", "rev": True, "help": "Ex: Fazer correndo."},
+            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular almoço."},
+            {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Ex: Ordens conflitantes."},
+            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético."},
+            {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas inalcançáveis."}
         ],
         "Controle": [
-            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro ou pegar café sem pedir permissão."},
-            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher a ordem das tarefas."},
-            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar ou desacelerar quando necessário."},
-            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Você organiza sua própria agenda do dia."},
-            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: O chefe ouve suas sugestões de melhoria."},
-            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Possibilidade de negociar horário de entrada/saída."}
+            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Ex: Ir ao banheiro sem pedir."},
+            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Ex: Escolher o método."},
+            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Ex: Acelerar/desacelerar."},
+            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Ex: Organização da agenda."},
+            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Ex: Opinar sobre processos."},
+            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Ex: Banco de horas."}
         ],
         "Suporte Gestor": [
-            {"id": 8, "q": "Recebo feedback sobre o trabalho que faço?", "rev": False, "help": "Ex: Saber se está indo bem ou mal."},
-            {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: O chefe ajuda a resolver ou diz 'se vira'?"},
-            {"id": 29, "q": "Posso falar com meu superior sobre algo que me chateou?", "rev": False, "help": "Ex: Abertura para conversar sobre insatisfações."},
-            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Sentir-se acolhido e não apenas cobrado."},
-            {"id": 35, "q": "Meu gestor me incentiva no trabalho?", "rev": False, "help": "Ex: Elogios ou motivação para continuar."}
+            {"id": 8, "q": "Recebo feedback sobre o trabalho?", "rev": False, "help": "Ex: Saber se está indo bem."},
+            {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Ex: Apoio na dificuldade."},
+            {"id": 29, "q": "Posso falar com meu superior sobre algo que chateou?", "rev": False, "help": "Ex: Abertura para diálogo."},
+            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Ex: Gestão humanizada."},
+            {"id": 35, "q": "Meu gestor me incentiva?", "rev": False, "help": "Ex: Motivação."}
         ],
         "Suporte Pares": [
-            {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "rev": False, "help": "Ex: Quando aperta, alguém te dá uma mão?"},
-            {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "rev": False, "help": "Ex: Tratamento cordial e profissional."},
-            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "rev": False, "help": "Ex: Ter com quem desabafar sobre o serviço."},
-            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade quando você está sobrecarregado."}
+            {"id": 7, "q": "Recebo ajuda dos colegas?", "rev": False, "help": "Ex: Apoio da equipe."},
+            {"id": 24, "q": "Recebo respeito dos colegas?", "rev": False, "help": "Ex: Tratamento cordial."},
+            {"id": 27, "q": "Colegas me ouvem sobre problemas?", "rev": False, "help": "Ex: Desabafo técnico."},
+            {"id": 31, "q": "Colegas ajudam em momentos difíceis?", "rev": False, "help": "Ex: Solidariedade."}
         ],
         "Relacionamentos": [
-            {"id": 5, "q": "Estou sujeito a assédio pessoal (palavras/comportamentos)?", "rev": True, "help": "Ex: Piadas ofensivas, gritos ou apelidos."},
-            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Clima pesado, fofocas ou brigas."},
-            {"id": 21, "q": "Estou sujeito(a) a bullying no trabalho?", "rev": True, "help": "Ex: Ser excluído ou ridicularizado sistematicamente."},
-            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
+            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas."},
+            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Brigas e fofocas."},
+            {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Exclusão."},
+            {"id": 34, "q": "Relacionamentos são tensos?", "rev": True, "help": "Ex: Clima pesado."}
         ],
         "Papel": [
-            {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Ex: Suas metas e funções são nítidas."},
-            {"id": 4, "q": "Sei como fazer para executar meu trabalho?", "rev": False, "help": "Ex: Tenho o conhecimento e ferramentas necessárias."},
-            {"id": 11, "q": "Sei quais são os objetivos do meu departamento?", "rev": False, "help": "Ex: Entender para onde a equipe está indo."},
-            {"id": 13, "q": "Sei o quanto de responsabilidade tenho?", "rev": False, "help": "Ex: Clareza sobre até onde vai sua autoridade."},
-            {"id": 17, "q": "Entendo como meu trabalho se encaixa no todo?", "rev": False, "help": "Ex: Ver sentido no que faz para a empresa."}
+            {"id": 1, "q": "Sei o que é esperado de mim?", "rev": False, "help": "Ex: Metas claras."},
+            {"id": 4, "q": "Sei como fazer meu trabalho?", "rev": False, "help": "Ex: Tenho conhecimento."},
+            {"id": 11, "q": "Sei os objetivos do departamento?", "rev": False, "help": "Ex: Visão macro."},
+            {"id": 13, "q": "Sei minha responsabilidade?", "rev": False, "help": "Ex: Limites da função."},
+            {"id": 17, "q": "Entendo meu encaixe na empresa?", "rev": False, "help": "Ex: Propósito."}
         ],
         "Mudança": [
-            {"id": 26, "q": "Tenho oportunidade de questionar sobre mudanças?", "rev": False, "help": "Ex: Espaço para tirar dúvidas sobre novidades."},
-            {"id": 28, "q": "Sou consultado(a) sobre mudanças no trabalho?", "rev": False, "help": "Ex: Opinar antes de mudarem seu processo."},
-            {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Ex: Comunicação clara sobre o 'novo jeito'."}
+            {"id": 26, "q": "Posso questionar mudanças?", "rev": False, "help": "Ex: Tirar dúvidas."},
+            {"id": 28, "q": "Sou consultado sobre mudanças?", "rev": False, "help": "Ex: Opinar antes."},
+            {"id": 32, "q": "Mudanças são claras?", "rev": False, "help": "Ex: Comunicação transparente."}
         ]
     }
 
@@ -188,7 +184,6 @@ if 'edit_id' not in st.session_state: st.session_state.edit_id = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def generate_mock_history():
-    """Gera dados históricos fictícios para a empresa IND01"""
     history = [
         {"periodo": "Jan/2025", "score": 2.8, "vidas": 120, "adesao": 85, "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0}},
         {"periodo": "Jul/2024", "score": 2.4, "vidas": 115, "adesao": 70, "dimensoes": {"Demandas": 1.8, "Controle": 3.0, "Suporte Gestor": 2.2, "Suporte Pares": 3.8, "Relacionamentos": 2.5, "Papel": 4.0, "Mudança": 2.8}},
@@ -218,6 +213,7 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
+        # Mock responses
         mock_responses = []
         for c in st.session_state.companies_db:
              for _ in range(c['respondidas']):
@@ -240,9 +236,9 @@ def image_to_base64(uploaded_file):
 def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.rerun()
 
 def kpi_card(title, value, icon, color_class):
-    st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div></div><div><div class="kpi-value">{value}</div><div class="kpi-title">{title}</div></div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div><div class="kpi-value">{value}</div></div><div class="kpi-title">{title}</div></div>""", unsafe_allow_html=True)
 
-# --- INTELIGÊNCIA HSE ---
+# --- INTELIGÊNCIA HSE AVANÇADA (BANCO EXPANDIDO) ---
 def gerar_analise_robusta(dimensoes):
     riscos = [k for k, v in dimensoes.items() if v < 3.0 and v > 0]
     texto = "Com base na metodologia HSE Management Standards Indicator Tool, a avaliação diagnóstica foi realizada considerando os pilares fundamentais de saúde ocupacional. "
@@ -255,18 +251,56 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # (Mantido banco de sugestões completo)
-    # 1. DEMANDAS
+    
+    # 1. DEMANDAS (EXPANDIDO)
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos e redistribuir.", "area": "Demandas"})
-        sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower (Urgente x Importante).", "area": "Demandas"})
-        sugestoes.append({"acao": "Política de Desconexão", "estrat": "Estabelecer regras sobre comunicação fora do horário comercial.", "area": "Demandas"})
-    # 2. CONTROLE
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Matriz de Priorização (Eisenhower)", "estrat": "Treinar equipes para classificar tarefas em Urgente/Importante.", "area": "Demandas"})
+        sugestoes.append({"acao": "Revisão de Prazos (SLA)", "estrat": "Renegociar prazos com clientes internos/externos baseados na capacidade.", "area": "Demandas"})
+        sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h para recuperação.", "area": "Demandas"})
+        sugestoes.append({"acao": "Política de Desconexão", "estrat": "Regras claras sobre mensagens fora do horário.", "area": "Demandas"})
+        sugestoes.append({"acao": "Contratação Sazonal", "estrat": "Alocar recursos extras em picos previstos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Automação de Processos", "estrat": "Identificar tarefas repetitivas passíveis de automação.", "area": "Demandas"})
+
+    # 2. CONTROLE (EXPANDIDO)
     if dimensoes.get("Controle", 5) < 3.8:
-        sugestoes.append({"acao": "Job Crafting", "estrat": "Permitir personalização de métodos de trabalho pelo colaborador.", "area": "Controle"})
-    # ... (outros itens para não estourar o limite de caracteres)
+        sugestoes.append({"acao": "Job Crafting", "estrat": "Permitir personalização do método de trabalho.", "area": "Controle"})
+        sugestoes.append({"acao": "Banco de Horas Flexível", "estrat": "Flexibilidade na entrada/saída mediante entrega.", "area": "Controle"})
+        sugestoes.append({"acao": "Comitê de Decisão", "estrat": "Incluir operacional em reuniões de planejamento.", "area": "Controle"})
+        sugestoes.append({"acao": "Autonomia na Agenda", "estrat": "Colaborador define ordem de tarefas não-críticas.", "area": "Controle"})
+        sugestoes.append({"acao": "Delegação de Autoridade", "estrat": "Empoderar níveis hierárquicos menores para decisões rotineiras.", "area": "Controle"})
+
+    # 3. SUPORTE (EXPANDIDO)
+    if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
+        sugestoes.append({"acao": "Treinamento de Liderança", "estrat": "Capacitação em Liderança Humanizada e Escuta Ativa.", "area": "Suporte"})
+        sugestoes.append({"acao": "Rotina de One-on-One", "estrat": "Feedbacks quinzenais focados em bem-estar.", "area": "Suporte"})
+        sugestoes.append({"acao": "Programa de Mentoria", "estrat": "Buddy System para novos colaboradores.", "area": "Suporte"})
+        sugestoes.append({"acao": "Reconhecimento Público", "estrat": "Implementar cultura de elogio nas reuniões de equipe.", "area": "Suporte"})
+        sugestoes.append({"acao": "Grupos de Apoio", "estrat": "Espaços seguros para troca de experiências.", "area": "Suporte"})
+
+    # 4. RELACIONAMENTOS (EXPANDIDO)
+    if dimensoes.get("Relacionamentos", 5) < 3.8:
+        sugestoes.append({"acao": "Comunicação Não-Violenta", "estrat": "Workshop prático de CNV.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Política Anti-Assédio", "estrat": "Divulgar Código de Conduta e Ética.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Canal de Ouvidoria", "estrat": "Canal anônimo e seguro para denúncias.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo multidisciplinar para mediação precoce.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Integração (Team Building)", "estrat": "Dinâmicas focadas em confiança e empatia.", "area": "Relacionamentos"})
+
+    # 5. PAPEL E MUDANÇA (EXPANDIDO)
+    if dimensoes.get("Papel", 5) < 3.8:
+        sugestoes.append({"acao": "Revisão de Job Description", "estrat": "Atualizar descrições para clareza de responsabilidades.", "area": "Papel"})
+        sugestoes.append({"acao": "Alinhamento de Metas", "estrat": "Reuniões semestrais para rever objetivos individuais.", "area": "Papel"})
+        sugestoes.append({"acao": "Onboarding Estruturado", "estrat": "Melhorar treinamento inicial sobre a função.", "area": "Papel"})
+
+    if dimensoes.get("Mudança", 5) < 3.8:
+        sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' das mudanças antes do 'como'.", "area": "Mudança"})
+        sugestoes.append({"acao": "Consulta Prévia", "estrat": "Focus groups antes de grandes alterações.", "area": "Mudança"})
+        sugestoes.append({"acao": "Embaixadores da Mudança", "estrat": "Nomear colaboradores chave para apoiar a transição.", "area": "Mudança"})
+
     if not sugestoes:
-        sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Realizar pesquisas de pulso trimestrais para monitoramento contínuo.", "area": "Geral"})
+        sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas de pulso trimestrais.", "area": "Geral"})
+        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar e gestão do estresse.", "area": "Geral"})
+        
     return sugestoes
 
 # --- 5. TELAS DO SISTEMA ---
@@ -305,11 +339,13 @@ def admin_dashboard():
         st.markdown("---"); 
         if st.button("Sair", use_container_width=True): logout()
 
-    # ... (Visão Geral mantida) ...
     if selected == "Visão Geral":
         st.title("Painel Administrativo")
+        
+        # Filtro Global
         lista_empresas = ["Todas"] + [c['razao'] for c in companies_data]
         empresa_filtro = st.selectbox("Filtrar por Empresa", lista_empresas)
+        
         if empresa_filtro != "Todas":
             companies_filtered = [c for c in companies_data if c['razao'] == empresa_filtro]
             target_id = companies_filtered[0]['id']
@@ -329,19 +365,22 @@ def admin_dashboard():
         with col4: kpi_card("Alertas", 0, "🚨", "bg-red")
         
         st.markdown("<br>", unsafe_allow_html=True)
+        
         c1, c2 = st.columns([1, 1.5])
         with c1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Radar HSE")
+            st.markdown("##### Radar HSE (Dimensões)")
             if companies_filtered:
                 categories = list(st.session_state.hse_questions.keys())
-                valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] # Mock visual
+                valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] # Mock visual ou média real
                 fig_radar = go.Figure()
                 fig_radar.add_trace(go.Scatterpolar(r=valores_radar, theta=categories, fill='toself', name='Média', line_color=COR_SECUNDARIA))
                 fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
                 st.plotly_chart(fig_radar, use_container_width=True)
-            else: st.info("Sem dados.")
+            else:
+                st.info("Sem dados para exibir.")
             st.markdown("</div>", unsafe_allow_html=True)
+            
         with c2:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.markdown("##### Resultados por Setor (Área)")
@@ -350,11 +389,14 @@ def admin_dashboard():
                 if 'setor' in df_resp.columns:
                     if 'score_simulado' not in df_resp.columns:
                         df_resp['score_simulado'] = [random.uniform(2.5, 4.8) for _ in range(len(df_resp))]
+                    
                     df_setor = df_resp.groupby('setor')['score_simulado'].mean().reset_index()
                     fig_bar_setor = px.bar(df_setor, x='setor', y='score_simulado', title="Score Médio por Setor", color='score_simulado', color_continuous_scale='RdYlGn', range_y=[0, 5])
                     st.plotly_chart(fig_bar_setor, use_container_width=True)
-                else: st.info("Sem dados de setor.")
-            else: st.info("Aguardando respostas.")
+                else:
+                    st.info("Dados de setor não disponíveis.")
+            else:
+                st.info("Aguardando respostas para gerar gráficos.")
             st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -372,9 +414,7 @@ def admin_dashboard():
                  st.plotly_chart(fig_pie, use_container_width=True)
              st.markdown("</div>", unsafe_allow_html=True)
 
-    # ... (Empresas e Gerar Link mantidos) ...
     elif selected == "Empresas":
-        # ... (Código v28)
         st.title("Gestão de Empresas")
         if st.session_state.edit_mode:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
@@ -439,34 +479,43 @@ def admin_dashboard():
                     logo_cliente = st.file_uploader("Logo Cliente", type=['png', 'jpg'])
                     if st.form_submit_button("Salvar no Banco de Dados"):
                         logo_str = image_to_base64(logo_cliente)
-                        new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "logo_b64": logo_str, "score": 0, "respondidas": 0, "dimensoes": {}, "detalhe_perguntas": {}, "setores_lista": ["Geral"]}
+                        new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "logo_b64": logo_str, "score": 0, "respondidas": 0, "dimensoes": {}, "detalhe_perguntas": {}, "setores_lista": ["Geral"], "cargos_lista": ["Geral"]}
                         st.session_state.companies_db.append(new_c)
                         st.success("Salvo!"); st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    elif selected == "Gestão de Setores":
-        # ... (Código v28)
-        st.title("Gestão de Setores")
+    elif selected == "Setores & Cargos":
+        st.title("Gestão de Setores e Cargos")
         if not st.session_state.companies_db: st.warning("Cadastre uma empresa."); return
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
         empresa_idx = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
         if empresa_idx is not None:
             empresa = st.session_state.companies_db[empresa_idx]
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.subheader("📂 Setores")
             
-            # Verificação de segurança para o data_editor
-            setores_lista = empresa.get('setores_lista', [])
-            if not setores_lista: setores_lista = ["Geral"] # Fallback se vazio
-            
-            edit_setores = st.data_editor(pd.DataFrame({"Setor": setores_lista}), num_rows="dynamic", key="ed_set")
-            if st.button("Salvar Setores"):
-                st.session_state.companies_db[empresa_idx]['setores_lista'] = edit_setores["Setor"].dropna().tolist()
-                st.success("Setores atualizados!")
-            st.markdown("</div>", unsafe_allow_html=True)
+            # Garante que as listas existam
+            if 'setores_lista' not in empresa or not empresa['setores_lista']: empresa['setores_lista'] = ["Geral"]
+            if 'cargos_lista' not in empresa or not empresa['cargos_lista']: empresa['cargos_lista'] = ["Geral"]
+
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                st.subheader("📂 Setores")
+                edit_setores = st.data_editor(pd.DataFrame({"Setor": empresa['setores_lista']}), num_rows="dynamic", key="ed_set")
+                if st.button("Salvar Setores"):
+                    st.session_state.companies_db[empresa_idx]['setores_lista'] = edit_setores["Setor"].dropna().tolist()
+                    st.success("Setores atualizados!")
+                st.markdown("</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                st.subheader("💼 Cargos (Interno)")
+                st.caption("Cargos são usados apenas para controle interno do RH.")
+                edit_cargos = st.data_editor(pd.DataFrame({"Cargo": empresa['cargos_lista']}), num_rows="dynamic", key="ed_carg")
+                if st.button("Salvar Cargos"):
+                    st.session_state.companies_db[empresa_idx]['cargos_lista'] = edit_cargos["Cargo"].dropna().tolist()
+                    st.success("Cargos atualizados!")
+                st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Gerar Link":
-        # ... (Código v28)
         st.title("Gerar Link & Testar")
         if not st.session_state.companies_db: st.warning("Cadastre uma empresa."); return
         with st.container():
@@ -495,73 +544,54 @@ def admin_dashboard():
             st.text_area("Mensagem WhatsApp:", value=texto_convite, height=200)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- HISTÓRICO & COMPARATIVO (NOVO) ---
+    # --- HISTÓRICO & COMPARATIVO (MANTIDO E MELHORADO) ---
     elif selected == "Histórico & Comparativo":
         st.title("Histórico & Comparativo")
         if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
-        
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
         empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
-        
         history_data = generate_mock_history()
         st.info("ℹ️ Exibindo dados históricos.")
 
-        tab_evo, tab_comp = st.tabs(["📈 Evolução Temporal", "⚖️ Comparativo (De/Para)"])
+        tab_evo, tab_comp = st.tabs(["📈 Evolução", "⚖️ Comparativo"])
         
         with tab_evo:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Evolução Score Geral")
             df_hist = pd.DataFrame(history_data)
-            fig_line = px.line(df_hist, x='periodo', y='score', markers=True)
+            fig_line = px.line(df_hist, x='periodo', y='score', markers=True, title="Evolução Score Geral")
             fig_line.update_traces(line_color=COR_SECUNDARIA, line_width=3)
-            fig_line.update_yaxes(range=[0, 5])
             st.plotly_chart(fig_line, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with tab_comp:
+            # Lógica de comparativo (mantida e condensada)
             c1, c2 = st.columns(2)
             periodo_a = c1.selectbox("Período A", [h['periodo'] for h in history_data], index=1)
             periodo_b = c2.selectbox("Período B", [h['periodo'] for h in history_data], index=0)
-            
             dados_a = next(h for h in history_data if h['periodo'] == periodo_a)
             dados_b = next(h for h in history_data if h['periodo'] == periodo_b)
             
-            st.markdown("---")
-            col_d1, col_d2, col_d3 = st.columns(3)
-            diff_score = dados_b['score'] - dados_a['score']
-            col_d1.metric("Score Geral", f"{dados_b['score']}", f"{diff_score:.2f}")
-            col_d2.metric("Vidas", f"{dados_b['vidas']}", f"{dados_b['vidas'] - dados_a['vidas']}")
-            col_d3.metric("Adesão", f"{dados_b['adesao']}%", f"{dados_b['adesao'] - dados_a['adesao']}%")
-            
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Comparativo Dimensional")
             categories = list(dados_a['dimensoes'].keys())
             fig_comp = go.Figure()
-            fig_comp.add_trace(go.Scatterpolar(r=list(dados_a['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_a}', line_color=COR_COMP_A, opacity=0.5))
-            fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
-            fig_comp.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=400)
+            fig_comp.add_trace(go.Scatterpolar(r=list(dados_a['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_a}'))
+            fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}'))
             st.plotly_chart(fig_comp, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
             
-            # Botão de Gerar Relatório Comparativo
-            if st.button("🖨️ Gerar Relatório Comparativo (PDF)", type="primary"):
-                 st.markdown("---")
-                 # ... (Geração de HTML simplificado para o comparativo)
+            # Botão Relatório Histórico
+            if st.button("🖨️ Gerar Relatório Comparativo", type="primary"):
                  html_comp = textwrap.dedent(f"""
                  <div class="a4-paper">
                     <h2 style="color:{COR_PRIMARIA}">RELATÓRIO EVOLUTIVO</h2>
                     <p><strong>Empresa:</strong> {empresa['razao']} | <strong>Comparativo:</strong> {periodo_a} vs {periodo_b}</p>
                     <hr>
-                    <h4>1. Evolução dos Indicadores</h4>
-                    <p>Score Geral: {dados_a['score']} ➝ <strong>{dados_b['score']}</strong> (Dif: {diff_score:.2f})</p>
-                    <p>Adesão: {dados_a['adesao']}% ➝ <strong>{dados_b['adesao']}%</strong></p>
-                    <h4>2. Análise Técnica</h4>
-                    <p>Houve uma variação de {diff_score:.2f} pontos no score geral. Recomenda-se manter as ações de suporte que apresentaram melhoria.</p>
+                    <h4>Evolução dos Indicadores</h4>
+                    <p>Score Geral: {dados_a['score']} ➝ <strong>{dados_b['score']}</strong></p>
                  </div>
                  """)
                  st.markdown(html_comp, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    # ... (Relatórios e Configurações mantidos da v30) ...
     elif selected == "Relatórios":
         st.title("Relatórios e Laudos")
         if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
@@ -585,7 +615,7 @@ def admin_dashboard():
             st.markdown("##### 1. Conclusão Técnica")
             analise_texto = st.text_area("Texto do Relatório:", value=analise_auto, height=150)
             st.markdown("---")
-            st.markdown("##### 2. Seleção de Ações Sugeridas")
+            st.markdown("##### 2. Seleção de Ações Sugeridas (Banco HSE Expandido)")
             opcoes_formatadas = [f"[{s['area']}] {s['acao']}: {s['estrat']}" for s in sugestoes_auto]
             selecionadas = st.multiselect("Banco de Sugestões:", options=opcoes_formatadas)
             if st.button("⬇️ Adicionar à Tabela"):
@@ -664,7 +694,6 @@ def admin_dashboard():
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
     elif selected == "Configurações":
-        # ... (Mantido igual v30)
         st.title("Configurações")
         tab_brand, tab_users, tab_sys = st.tabs(["🎨 Personalização", "🔐 Acessos", "⚙️ Sistema"])
         
