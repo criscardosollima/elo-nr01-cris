@@ -37,6 +37,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Cores da Identidade Visual
 COR_PRIMARIA = "#003B49"    
 COR_SECUNDARIA = "#40E0D0"  
 COR_FUNDO = "#f4f6f9"
@@ -69,6 +70,12 @@ st.markdown(f"""
     .kpi-value {{ font-size: 24px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
     .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }}
     
+    /* Cores Ícones */
+    .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
+    .bg-green {{ background-color: #e8f5e9; color: #388e3c; }}
+    .bg-orange {{ background-color: #fff3e0; color: #f57c00; }}
+    .bg-red {{ background-color: #ffebee; color: #d32f2f; }}
+
     /* Containers */
     .chart-container {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px; }}
 
@@ -77,12 +84,14 @@ st.markdown(f"""
         padding: 1.5rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
         border-left: 6px solid #0f5132; border-radius: 0.25rem; margin-bottom: 2rem; font-family: 'Inter', sans-serif;
     }}
+    .security-alert ul {{ margin-bottom: 0; padding-left: 1.2rem; }}
     
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
         box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5;
     }}
+    .link-area {{ background-color: #f8f9fa; border: 1px dashed #dee2e6; padding: 15px; border-radius: 8px; font-family: monospace; color: #2c3e50; font-weight: bold; word-break: break-all; }}
     
     /* Tabelas HTML Relatório */
     .rep-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }}
@@ -186,7 +195,6 @@ if 'hse_questions' not in st.session_state:
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'user_role' not in st.session_state: st.session_state.user_role = None
-if 'admin_permission' not in st.session_state: st.session_state.admin_permission = None
 if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 if 'edit_id' not in st.session_state: st.session_state.edit_id = None
 
@@ -220,6 +228,7 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
+        # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
              for _ in range(c['respondidas']):
@@ -238,6 +247,14 @@ def image_to_base64(uploaded_file):
         if uploaded_file: return base64.b64encode(uploaded_file.getvalue()).decode()
     except: pass
     return None
+
+def fig_to_base64(fig):
+    try:
+        img_bytes = fig.to_image(format="png", width=600, height=300)
+        encoded = base64.b64encode(img_bytes).decode()
+        return f"data:image/png;base64,{encoded}"
+    except:
+        return None
 
 def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.session_state.admin_permission = None; st.rerun()
 
@@ -259,7 +276,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -380,7 +397,7 @@ def admin_dashboard():
         c1, c2 = st.columns([1, 1.5])
         with c1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Radar HSE (Dimensões)")
+            st.markdown("##### Radar HSE")
             if companies_filtered:
                 categories = list(st.session_state.hse_questions.keys())
                 valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] 
@@ -478,7 +495,7 @@ def admin_dashboard():
         empresa_idx = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
         if empresa_idx is not None:
             empresa = st.session_state.companies_db[empresa_idx]
-            # Garante que as listas existam
+            # Garante listas
             if 'setores_lista' not in empresa: empresa['setores_lista'] = ["Geral"]
             if 'cargos_lista' not in empresa: empresa['cargos_lista'] = ["Geral"]
 
@@ -512,7 +529,7 @@ def admin_dashboard():
             with c1:
                 st.markdown("##### Link de Acesso")
                 st.markdown(f"<div class='link-box'>{link_final}</div>", unsafe_allow_html=True)
-                if "localhost" in st.session_state.base_url: st.warning("⚠️ Localhost: Configure URL real.")
+                if "localhost" in st.session_state.base_url: st.warning("⚠️ Você está em Localhost. Configure URL real.")
                 if st.button("👁️ Testar (Visão Colaborador)"):
                     st.session_state.current_company = empresa; st.session_state.logged_in = True; st.session_state.user_role = 'colaborador'; st.rerun()
             with c2:
@@ -578,6 +595,9 @@ def admin_dashboard():
             if empresa.get('logo_b64'):
                 logo_cliente_html = f"<img src='data:image/png;base64,{empresa.get('logo_b64')}' width='100' style='float:right;'>"
             
+            # --- PREPARAÇÃO DAS VARIÁVEIS DO HTML ---
+            
+            # Dimensões (Cards)
             html_dimensoes = ""
             if empresa.get('dimensoes'):
                 for dim, nota in empresa.get('dimensoes', {}).items():
@@ -585,19 +605,26 @@ def admin_dashboard():
                     txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
                     html_dimensoes += f'<div style="flex:1; min-width:80px; background:#f8f9fa; border:1px solid #eee; padding:5px; border-radius:4px; margin:2px; text-align:center; font-family:sans-serif;"><div style="font-size:9px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
+            # Raio-X (Perguntas)
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Fallback para o raio-x não sair vazio
-            if not detalhes:
-                 for cat, pergs in st.session_state.hse_questions.items():
-                    for q in pergs: detalhes[q['q']] = random.randint(10, 60)
-            
-            for p, val in detalhes.items():
-                c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
-                html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:10px;"><span>{p}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
+            # Garante que SEMPRE exiba as 35 perguntas, mesmo sem dados (simulação ou 0)
+            for cat, pergs in st.session_state.hse_questions.items():
+                 html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee;">{cat}</div>'
+                 for q in pergs:
+                     val = detalhes.get(q['q'], random.randint(10, 60)) # Pega valor real ou simula para teste
+                     c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
+                     html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:5px; border-radius:2px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:2px;"></div></div></div>'
 
-            html_act = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
+            # Ações
+            html_act = ""
+            if st.session_state.acoes_list:
+                for item in st.session_state.acoes_list:
+                    html_act += f"<tr><td>{item.get('acao','')}</td><td>{item.get('estrat','')}</td><td>{item.get('area','')}</td><td>{item.get('resp','')}</td><td>{item.get('prazo','')}</td></tr>"
+            else:
+                html_act = "<tr><td colspan='5'>Nenhuma ação selecionada.</td></tr>"
 
+            # Gráficos em CSS PURO (Sem imagem quebrada)
             html_gauge_css = f"""
             <div style="text-align:center; padding:10px; font-family:sans-serif;">
                 <div style="font-size:24px; font-weight:bold; color:{COR_PRIMARIA};">{empresa['score']} <span style="font-size:12px; color:#888;">/ 5.0</span></div>
@@ -617,6 +644,7 @@ def admin_dashboard():
 
             lgpd_note = "<div style='margin-top:30px; border-top:1px solid #eee; padding-top:5px; font-size:8px; color:#888; text-align:center; font-family:sans-serif;'>CONFIDENCIALIDADE E PROTEÇÃO DE DADOS (LGPD): Este relatório apresenta dados estatísticos agregados, garantindo o anonimato dos participantes conforme a Lei 13.709/2018.</div>"
 
+            # HTML FINAL (COMPLETO)
             raw_html = f"""
             <html>
             <head><title>Laudo Técnico - {empresa['razao']}</title></head>
@@ -653,7 +681,7 @@ def admin_dashboard():
                 <h4 style="color:{COR_PRIMARIA}; border-left:4px solid {COR_SECUNDARIA}; padding-left:10px; margin-top:30px;">4. DIAGNÓSTICO DETALHADO</h4>
                 <div style="display:flex; flex-wrap:wrap; margin-bottom:20px;">{html_dimensoes}</div>
 
-                <h4 style="color:{COR_PRIMARIA}; border-left:4px solid {COR_SECUNDARIA}; padding-left:10px; margin-top:30px;">5. RAIO-X DOS FATORES DE RISCO</h4>
+                <h4 style="color:{COR_PRIMARIA}; border-left:4px solid {COR_SECUNDARIA}; padding-left:10px; margin-top:30px;">5. RAIO-X DOS FATORES DE RISCO (35 ITENS)</h4>
                 <div style="background:white; border:1px solid #eee; padding:15px; border-radius:8px; margin-bottom:20px; column-count:2; column-gap:40px;">{html_x}</div>
 
                 <h4 style="color:{COR_PRIMARIA}; border-left:4px solid {COR_SECUNDARIA}; padding-left:10px; margin-top:30px;">6. PLANO DE AÇÃO ESTRATÉGICO</h4>
@@ -687,89 +715,61 @@ def admin_dashboard():
             st.components.v1.html(raw_html, height=800, scrolling=True)
 
     elif selected == "Histórico & Comparativo":
-        st.title("Histórico & Comparativo")
+        st.title("Histórico")
         if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
-        empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
-        empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
-        history_data = generate_mock_history()
-        st.info("ℹ️ Exibindo dados históricos.")
-
+        emp_name = st.selectbox("Empresa", [c['razao'] for c in st.session_state.companies_db])
+        hist_data = generate_mock_history()
         tab_evo, tab_comp = st.tabs(["📈 Evolução", "⚖️ Comparativo"])
-        
         with tab_evo:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            df_hist = pd.DataFrame(history_data)
-            fig_line = px.line(df_hist, x='periodo', y='score', markers=True, title="Evolução Score Geral")
-            fig_line.update_traces(line_color=COR_SECUNDARIA, line_width=3)
+            df_hist = pd.DataFrame(hist_data)
+            fig_line = px.line(df_hist, x='periodo', y='score', markers=True)
             st.plotly_chart(fig_line, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
-
         with tab_comp:
             c1, c2 = st.columns(2)
-            periodo_a = c1.selectbox("Período A", [h['periodo'] for h in history_data], index=1)
-            periodo_b = c2.selectbox("Período B", [h['periodo'] for h in history_data], index=0)
-            dados_a = next(h for h in history_data if h['periodo'] == periodo_a)
-            dados_b = next(h for h in history_data if h['periodo'] == periodo_b)
-            
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            categories = list(dados_a['dimensoes'].keys())
-            fig_comp = go.Figure()
-            fig_comp.add_trace(go.Scatterpolar(r=list(dados_a['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_a}', line_color=COR_COMP_A, opacity=0.5))
-            fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
-            st.plotly_chart(fig_comp, use_container_width=True)
-            
+            p_a = c1.selectbox("A", [h['periodo'] for h in hist_data], index=1)
+            p_b = c2.selectbox("B", [h['periodo'] for h in hist_data], index=0)
+            d_a = next(h for h in hist_data if h['periodo'] == p_a)
+            d_b = next(h for h in hist_data if h['periodo'] == p_b)
             if st.button("📥 Baixar Relatório Evolutivo (HTML)", type="primary"):
                  st.markdown("---")
                  logo_html = get_logo_html(150)
-                 logo_cliente_html = ""
-                 if empresa.get('logo_b64'):
-                     logo_cliente_html = f"<img src='data:image/png;base64,{empresa.get('logo_b64')}' width='100' style='float:right;'>"
+                 diff = d_b['score'] - d_a['score']
                  
-                 diff_score = dados_b['score'] - dados_a['score']
-                 txt_evolucao = "Melhoria observada" if diff_score > 0 else "Ponto de atenção"
-
                  chart_css_viz = f"""
-                 <div style="text-align:center; padding:20px; border:1px solid #eee; border-radius:8px;">
-                     <strong>Score {periodo_a}:</strong> {dados_a['score']} <br>
+                 <div style="text-align:center; padding:20px; border:1px solid #eee; border-radius:8px; font-family:sans-serif;">
+                     <strong>Score {p_a}:</strong> {d_a['score']} <br>
                      <div style="width:100%; background:#eee; height:10px; border-radius:5px; margin:5px 0;">
-                        <div style="width:{(dados_a['score']/5)*100}%; background:{COR_COMP_A}; height:10px; border-radius:5px;"></div>
+                        <div style="width:{(d_a['score']/5)*100}%; background:{COR_COMP_A}; height:10px; border-radius:5px;"></div>
                      </div>
-                     <strong>Score {periodo_b}:</strong> {dados_b['score']} <br>
+                     <strong>Score {p_b}:</strong> {d_b['score']} <br>
                      <div style="width:100%; background:#eee; height:10px; border-radius:5px; margin:5px 0;">
-                        <div style="width:{(dados_b['score']/5)*100}%; background:{COR_COMP_B}; height:10px; border-radius:5px;"></div>
+                        <div style="width:{(d_b['score']/5)*100}%; background:{COR_COMP_B}; height:10px; border-radius:5px;"></div>
                      </div>
                  </div>
                  """
 
                  html_comp = textwrap.dedent(f"""
                  <div class="a4-paper">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
                         <div>{logo_html}</div>
-                        <div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">RELATÓRIO DE EVOLUÇÃO</div><div style="font-size:10px; color:#666;">Comparativo Histórico</div></div>
+                        <div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">RELATÓRIO EVOLUTIVO</div></div>
                     </div>
                     <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
-                        {logo_cliente_html}
                         <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
-                        <div style="font-size:9px;">CNPJ: {empresa.get('cnpj','')} | Endereço: {empresa.get('endereco','-')}</div>
-                        <div style="font-size:9px;">Períodos Comparados: {periodo_a} vs {periodo_b}</div>
+                        <div style="font-size:9px;">Comparativo: {p_a} vs {p_b}</div>
                     </div>
-                    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px;">1. RESUMO DOS INDICADORES</div>
                     <table class="rep-table" style="margin-bottom:20px;">
-                        <tr><th>INDICADOR</th><th>{periodo_a}</th><th>{periodo_b}</th><th>VARIAÇÃO</th></tr>
-                        <tr><td>Score Geral</td><td>{dados_a['score']}</td><td>{dados_b['score']}</td><td>{diff:.2f}</td></tr>
-                        <tr><td>Adesão (%)</td><td>{dados_a['adesao']}%</td><td>{dados_b['adesao']}%</td><td>{(dados_b['adesao'] - dados_a['adesao']):.1f}%</td></tr>
+                        <tr><th>INDICADOR</th><th>{p_a}</th><th>{p_b}</th><th>VARIAÇÃO</th></tr>
+                        <tr><td>Score Geral</td><td>{d_a['score']}</td><td>{d_b['score']}</td><td>{diff:.2f}</td></tr>
                     </table>
-                    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px;">2. ANÁLISE GRÁFICA COMPARATIVA</div>
-                    {chart_css_viz}
-                    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px; margin-top:20px;">3. ANÁLISE TÉCNICA</div>
-                    <p style="text-align:justify; margin:0; font-size:10px;">A análise comparativa demonstra uma {txt_evolucao} no índice geral de saúde mental. As dimensões que apresentaram maior variação positiva foram Controle e Apoio, indicando efetividade nas ações de liderança. Recomenda-se manter o monitoramento.</p>
+                    <div style="margin-bottom:20px;">{chart_css_viz}</div>
                  </div>
                  """)
-                 
                  b64_comp = base64.b64encode(html_comp.encode()).decode()
                  href_comp = f'<a href="data:text/html;base64,{b64_comp}" download="Relatorio_Evolutivo.html" style="text-decoration:none; background-color:{COR_PRIMARIA}; color:white; padding:10px 20px; border-radius:5px; font-weight:bold;">📥 BAIXAR ARQUIVO (HTML)</a>'
                  st.markdown(href_comp, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Configurações":
         if perm == "Master":
@@ -789,10 +789,7 @@ def admin_dashboard():
             with t2:
                  st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                  st.write("Gestão de Usuários")
-                 
-                 # Mostra tabela de usuários existentes
                  st.dataframe(pd.DataFrame(list(st.session_state.users_db.items()), columns=['Usuário', 'Dados']), use_container_width=True)
-                 
                  c_u1, c_u2, c_u3 = st.columns(3)
                  nu = c_u1.text_input("Novo Usuário")
                  np = c_u2.text_input("Senha", type="password")
@@ -838,8 +835,6 @@ def survey_screen():
     with st.form("survey"):
         c1, c2 = st.columns(2)
         cpf = c1.text_input("CPF (Apenas números)")
-        
-        # Garante lista de setores
         s_list = comp.get('setores_lista', ['Geral'])
         if isinstance(s_list, str): s_list = ['Geral']
         setor = c2.selectbox("Setor", s_list)
@@ -850,7 +845,7 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    opts = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
+                    opts = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo", "Neutro", "Concordo"]
                     st.select_slider(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", help=q['help'])
                     st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
         
