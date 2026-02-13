@@ -37,7 +37,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Cores da Identidade Visual
 COR_PRIMARIA = "#003B49"    
 COR_SECUNDARIA = "#40E0D0"  
 COR_FUNDO = "#f4f6f9"
@@ -79,12 +78,11 @@ st.markdown(f"""
     /* Containers */
     .chart-container {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px; }}
 
-    /* Caixa de Segurança (Verde Intenso) */
+    /* Caixa de Segurança */
     .security-alert {{
         padding: 1.5rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
         border-left: 6px solid #0f5132; border-radius: 0.25rem; margin-bottom: 2rem; font-family: 'Inter', sans-serif;
     }}
-    .security-alert ul {{ margin-bottom: 0; padding-left: 1.2rem; }}
     
     /* Relatório A4 */
     .a4-paper {{ 
@@ -98,7 +96,7 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider (Bolinhas) */
+    /* Ajuste Slider */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
     div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
 
@@ -122,6 +120,7 @@ if 'users_db' not in st.session_state:
     }
 
 if 'companies_db' not in st.session_state:
+    # Estrutura com validade e dicionário de setores/cargos
     st.session_state.companies_db = [
         {
             "id": "IND01", "razao": "Indústria Têxtil Fabril (Exemplo)", "cnpj": "00.000.000/0001-00", 
@@ -129,12 +128,17 @@ if 'companies_db' not in st.session_state:
             "segmentacao": "GHE", "resp": "Gestor Exemplo", 
             "email": "exemplo@email.com", "telefone": "(11) 99999-9999", "endereco": "Av. Industrial, 1000 - SP",
             "logo_b64": None, "score": 2.8, "respondidas": 15,
+            "valid_until": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(), # Data de validade
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {
                  "Prazos impossíveis de cumprir?": 65, "Pressão para trabalhar longas horas?": 45, "Tenho que trabalhar muito intensamente?": 55
              },
-             "setores_lista": ["Administrativo", "Produção", "Logística"],
-             "cargos_lista": ["Analista", "Operador", "Gerente"]
+             # Nova estrutura hierárquica
+             "org_structure": {
+                 "Administrativo": ["Analista", "Assistente", "Gerente"],
+                 "Produção": ["Operador", "Supervisor", "Auxiliar"],
+                 "Logística": ["Motorista", "Estoquista"]
+             }
         }
     ]
 
@@ -195,16 +199,11 @@ if 'hse_questions' not in st.session_state:
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'user_role' not in st.session_state: st.session_state.user_role = None
+if 'admin_permission' not in st.session_state: st.session_state.admin_permission = None
 if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 if 'edit_id' not in st.session_state: st.session_state.edit_id = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
-def generate_mock_history():
-    history = [
-        {"periodo": "Jan/2025", "score": 2.8, "vidas": 120, "adesao": 85, "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0}},
-        {"periodo": "Jul/2024", "score": 2.4, "vidas": 115, "adesao": 70, "dimensoes": {"Demandas": 1.8, "Controle": 3.0, "Suporte Gestor": 2.2, "Suporte Pares": 3.8, "Relacionamentos": 2.5, "Papel": 4.0, "Mudança": 2.8}}
-    ]
-    return history
 
 def load_data_from_db():
     if DB_CONNECTED:
@@ -223,16 +222,21 @@ def load_data_from_db():
                     comp['score'] = 0
                     comp['dimensoes'] = {"Demandas": 0, "Controle": 0, "Suporte Gestor": 0, "Suporte Pares": 0, "Relacionamentos": 0, "Papel": 0, "Mudança": 0}
                 comp['detalhe_perguntas'] = comp.get('detalhe_perguntas', {})
-                if 'setores_lista' not in comp or not comp['setores_lista']: comp['setores_lista'] = ["Geral"]
-                if 'cargos_lista' not in comp or not comp['cargos_lista']: comp['cargos_lista'] = ["Geral"]
+                # Inicializa estrutura organizacional se não existir
+                if 'org_structure' not in comp: 
+                    comp['org_structure'] = {"Geral": ["Geral"]}
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
         # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
+             if 'org_structure' not in c: c['org_structure'] = {"Geral": ["Geral"]}
+             
+             # Pega setores disponíveis
+             sectores = list(c['org_structure'].keys())
              for _ in range(c['respondidas']):
-                 mock_responses.append({"company_id": c['id'], "setor": random.choice(c.get('setores_lista', ['Geral'])), "score_simulado": random.uniform(2.0, 5.0) })
+                 mock_responses.append({"company_id": c['id'], "setor": random.choice(sectores), "score_simulado": random.uniform(2.0, 5.0) })
         return st.session_state.companies_db, mock_responses
 
 def get_logo_html(width=180):
@@ -247,14 +251,6 @@ def image_to_base64(uploaded_file):
         if uploaded_file: return base64.b64encode(uploaded_file.getvalue()).decode()
     except: pass
     return None
-
-def fig_to_base64(fig):
-    try:
-        img_bytes = fig.to_image(format="png", width=600, height=300)
-        encoded = base64.b64encode(img_bytes).decode()
-        return f"data:image/png;base64,{encoded}"
-    except:
-        return None
 
 def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.session_state.admin_permission = None; st.rerun()
 
@@ -302,6 +298,7 @@ def gerar_banco_sugestoes(dimensoes):
     
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
+        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
     return sugestoes
 
 # ==============================================================================
@@ -349,7 +346,7 @@ def admin_dashboard():
     companies_data, responses_data = load_data_from_db()
     
     perm = st.session_state.admin_permission
-    menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"]
+    menu_options = ["Visão Geral", "Gerar Link", "Relatórios"]
     
     if perm in ["Master", "Gestor"]:
         menu_options.insert(1, "Empresas")
@@ -360,8 +357,7 @@ def admin_dashboard():
 
     icons_map = {
         "Visão Geral": "grid", "Empresas": "building", "Setores & Cargos": "list-task", 
-        "Gerar Link": "link-45deg", "Relatórios": "file-text", "Histórico & Comparativo": "clock-history", 
-        "Configurações": "gear"
+        "Gerar Link": "link-45deg", "Relatórios": "file-text", "Configurações": "gear"
     }
     menu_icons = [icons_map[o] for o in menu_options]
 
@@ -420,6 +416,20 @@ def admin_dashboard():
                 else: st.info("Sem dados de setor.")
             else: st.info("Aguardando respostas.")
             st.markdown("</div>", unsafe_allow_html=True)
+        
+        c3, c4 = st.columns([1.5, 1])
+        with c3:
+             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+             st.markdown("##### Distribuição Geral")
+             if companies_filtered:
+                 status_dist = {"Concluído": 0, "Em Andamento": 0}
+                 for c in companies_filtered:
+                     if c['respondidas'] >= c['func']: status_dist["Concluído"] += 1
+                     else: status_dist["Em Andamento"] += 1
+                 fig_pie = px.pie(names=list(status_dist.keys()), values=list(status_dist.values()), hole=0.6, color_discrete_sequence=[COR_SECUNDARIA, COR_RISCO_MEDIO])
+                 fig_pie.update_layout(height=250, margin=dict(t=0, b=0, l=0, r=0))
+                 st.plotly_chart(fig_pie, use_container_width=True)
+             st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
@@ -445,9 +455,10 @@ def admin_dashboard():
                     new_resp = c7.text_input("Responsável", value=emp_edit['resp'])
                     new_email = c8.text_input("E-mail Resp.", value=emp_edit.get('email',''))
                     new_tel = c9.text_input("Telefone Resp.", value=emp_edit.get('telefone',''))
+                    new_valid = st.date_input("Validade do Link", value=datetime.date.today() + datetime.timedelta(days=30))
                     new_end = st.text_input("Endereço Completo", value=emp_edit.get('endereco',''))
                     if st.form_submit_button("💾 Salvar Alterações"):
-                        emp_edit.update({'razao': new_razao, 'cnpj': new_cnpj, 'cnae': new_cnae, 'risco': new_risco, 'func': new_func, 'segmentacao': new_seg, 'resp': new_resp, 'email': new_email, 'telefone': new_tel, 'endereco': new_end})
+                        emp_edit.update({'razao': new_razao, 'cnpj': new_cnpj, 'cnae': new_cnae, 'risco': new_risco, 'func': new_func, 'segmentacao': new_seg, 'resp': new_resp, 'email': new_email, 'telefone': new_tel, 'endereco': new_end, 'valid_until': new_valid.isoformat()})
                         st.session_state.edit_mode = False; st.session_state.edit_id = None; st.success("Atualizado!"); st.rerun()
                 if st.button("Cancelar"): st.session_state.edit_mode = False; st.rerun()
         else:
@@ -462,7 +473,8 @@ def admin_dashboard():
                         c3.write(f"**Vidas:** {emp['func']} | **Pendentes:** {pendentes}")
                         c4_1, c4_2 = c4.columns(2)
                         if c4_1.button("✏️", key=f"ed_{idx}"): st.session_state.edit_mode = True; st.session_state.edit_id = emp['id']; st.rerun()
-                        if c4_2.button("🗑️", key=f"del_{idx}"): st.session_state.companies_db.pop(idx); st.rerun()
+                        if perm == "Master":
+                            if c4_2.button("🗑️", key=f"del_{idx}"): st.session_state.companies_db.pop(idx); st.rerun()
             with tab2:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 with st.form("add_comp"):
@@ -481,40 +493,70 @@ def admin_dashboard():
                     c10, c11 = st.columns(2)
                     tel = c10.text_input("Telefone Resp.")
                     end = c11.text_input("Endereço Completo")
+                    valid_date = st.date_input("Link Válido Até", value=datetime.date.today() + datetime.timedelta(days=30))
                     logo_cliente = st.file_uploader("Logo Cliente", type=['png', 'jpg'])
                     if st.form_submit_button("Salvar no Banco de Dados"):
                         logo_str = image_to_base64(logo_cliente)
-                        new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "logo_b64": logo_str, "score": 0, "respondidas": 0, "dimensoes": {}, "detalhe_perguntas": {}, "setores_lista": ["Geral"], "cargos_lista": ["Geral"]}
+                        new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "valid_until": valid_date.isoformat(), "logo_b64": logo_str, "score": 0, "respondidas": 0, "dimensoes": {}, "detalhe_perguntas": {}, "org_structure": {"Geral": ["Geral"]}}
                         st.session_state.companies_db.append(new_c); st.success("Salvo!"); st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Setores & Cargos":
         st.title("Gestão de Setores e Cargos")
         if not st.session_state.companies_db: st.warning("Cadastre uma empresa."); return
+        
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
         empresa_idx = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
+        
         if empresa_idx is not None:
             empresa = st.session_state.companies_db[empresa_idx]
-            # Garante listas
-            if 'setores_lista' not in empresa: empresa['setores_lista'] = ["Geral"]
-            if 'cargos_lista' not in empresa: empresa['cargos_lista'] = ["Geral"]
-
+            
+            # Garante estrutura
+            if 'org_structure' not in empresa: empresa['org_structure'] = {"Geral": ["Geral"]}
+            
             c1, c2 = st.columns(2)
+            
             with c1:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                st.subheader("📂 Setores")
-                edit_setores = st.data_editor(pd.DataFrame({"Setor": empresa['setores_lista']}), num_rows="dynamic", key="ed_s")
-                if st.button("Salvar Setores"):
-                    st.session_state.companies_db[empresa_idx]['setores_lista'] = edit_setores["Setor"].dropna().tolist()
-                    st.success("Setores atualizados!")
+                st.subheader("1. Criar/Remover Setores")
+                
+                # Adicionar Setor
+                new_setor = st.text_input("Novo Setor")
+                if st.button("➕ Adicionar Setor"):
+                    if new_setor and new_setor not in empresa['org_structure']:
+                        st.session_state.companies_db[empresa_idx]['org_structure'][new_setor] = []
+                        st.success(f"Setor {new_setor} criado!")
+                        st.rerun()
+                
+                st.markdown("---")
+                # Lista de Setores para Remover
+                setores_existentes = list(empresa['org_structure'].keys())
+                setor_remover = st.selectbox("Selecione para remover", setores_existentes)
+                if st.button("🗑️ Remover Setor"):
+                    if setor_remover:
+                        del st.session_state.companies_db[empresa_idx]['org_structure'][setor_remover]
+                        st.success("Removido!")
+                        st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
+
             with c2:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                st.subheader("💼 Cargos")
-                edit_cargos = st.data_editor(pd.DataFrame({"Cargo": empresa['cargos_lista']}), num_rows="dynamic", key="ed_c")
-                if st.button("Salvar Cargos"):
-                    st.session_state.companies_db[empresa_idx]['cargos_lista'] = edit_cargos["Cargo"].dropna().tolist()
-                    st.success("Cargos atualizados!")
+                st.subheader("2. Gerenciar Cargos por Setor")
+                
+                setor_sel = st.selectbox("Selecione o Setor:", setores_existentes, key="sel_setor_cargos")
+                
+                if setor_sel:
+                    cargos_atuais = empresa['org_structure'][setor_sel]
+                    st.write(f"Cargos em **{setor_sel}**:")
+                    
+                    # Data Editor para Cargos
+                    df_cargos = pd.DataFrame({"Cargo": cargos_atuais})
+                    edited_cargos = st.data_editor(df_cargos, num_rows="dynamic", key="editor_cargos")
+                    
+                    if st.button("💾 Salvar Cargos deste Setor"):
+                        lista_nova = edited_cargos["Cargo"].dropna().tolist()
+                        st.session_state.companies_db[empresa_idx]['org_structure'][setor_sel] = lista_nova
+                        st.success("Cargos atualizados!")
                 st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Gerar Link":
@@ -525,10 +567,20 @@ def admin_dashboard():
             empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
             empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
             link_final = f"{st.session_state.base_url}/?cod={empresa['id']}"
+            
             c1, c2 = st.columns([2, 1])
             with c1:
                 st.markdown("##### Link de Acesso")
                 st.markdown(f"<div class='link-box'>{link_final}</div>", unsafe_allow_html=True)
+                
+                # Exibir validade
+                validade = empresa.get('valid_until', 'Indeterminado')
+                if validade != 'Indeterminado':
+                    try:
+                        data_val = datetime.datetime.fromisoformat(validade).strftime('%d/%m/%Y')
+                        st.caption(f"📅 Link válido até: {data_val}")
+                    except: pass
+
                 if "localhost" in st.session_state.base_url: st.warning("⚠️ Você está em Localhost. Configure URL real.")
                 if st.button("👁️ Testar (Visão Colaborador)"):
                     st.session_state.current_company = empresa; st.session_state.logged_in = True; st.session_state.user_role = 'colaborador'; st.rerun()
@@ -595,9 +647,6 @@ def admin_dashboard():
             if empresa.get('logo_b64'):
                 logo_cliente_html = f"<img src='data:image/png;base64,{empresa.get('logo_b64')}' width='100' style='float:right;'>"
             
-            # --- PREPARAÇÃO DAS VARIÁVEIS DO HTML ---
-            
-            # Dimensões (Cards)
             html_dimensoes = ""
             if empresa.get('dimensoes'):
                 for dim, nota in empresa.get('dimensoes', {}).items():
@@ -605,26 +654,18 @@ def admin_dashboard():
                     txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
                     html_dimensoes += f'<div style="flex:1; min-width:80px; background:#f8f9fa; border:1px solid #eee; padding:5px; border-radius:4px; margin:2px; text-align:center; font-family:sans-serif;"><div style="font-size:9px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
-            # Raio-X (Perguntas)
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante que SEMPRE exiba as 35 perguntas, mesmo sem dados (simulação ou 0)
-            for cat, pergs in st.session_state.hse_questions.items():
-                 html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee;">{cat}</div>'
-                 for q in pergs:
-                     val = detalhes.get(q['q'], random.randint(10, 60)) # Pega valor real ou simula para teste
-                     c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
-                     html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:5px; border-radius:2px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:2px;"></div></div></div>'
+            # Fallback visual
+            if not detalhes:
+                 for cat, pergs in st.session_state.hse_questions.items():
+                    for q in pergs: detalhes[q['q']] = random.randint(10, 60)
+            for p, val in detalhes.items():
+                c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
+                html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:10px;"><span>{p}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
 
-            # Ações
-            html_act = ""
-            if st.session_state.acoes_list:
-                for item in st.session_state.acoes_list:
-                    html_act += f"<tr><td>{item.get('acao','')}</td><td>{item.get('estrat','')}</td><td>{item.get('area','')}</td><td>{item.get('resp','')}</td><td>{item.get('prazo','')}</td></tr>"
-            else:
-                html_act = "<tr><td colspan='5'>Nenhuma ação selecionada.</td></tr>"
+            html_act = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
-            # Gráficos em CSS PURO (Sem imagem quebrada)
             html_gauge_css = f"""
             <div style="text-align:center; padding:10px; font-family:sans-serif;">
                 <div style="font-size:24px; font-weight:bold; color:{COR_PRIMARIA};">{empresa['score']} <span style="font-size:12px; color:#888;">/ 5.0</span></div>
@@ -644,7 +685,6 @@ def admin_dashboard():
 
             lgpd_note = "<div style='margin-top:30px; border-top:1px solid #eee; padding-top:5px; font-size:8px; color:#888; text-align:center; font-family:sans-serif;'>CONFIDENCIALIDADE E PROTEÇÃO DE DADOS (LGPD): Este relatório apresenta dados estatísticos agregados, garantindo o anonimato dos participantes conforme a Lei 13.709/2018.</div>"
 
-            # HTML FINAL (COMPLETO)
             raw_html = f"""
             <html>
             <head><title>Laudo Técnico - {empresa['razao']}</title></head>
@@ -714,63 +754,6 @@ def admin_dashboard():
             st.subheader("Pré-visualização:")
             st.components.v1.html(raw_html, height=800, scrolling=True)
 
-    elif selected == "Histórico & Comparativo":
-        st.title("Histórico")
-        if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
-        emp_name = st.selectbox("Empresa", [c['razao'] for c in st.session_state.companies_db])
-        hist_data = generate_mock_history()
-        tab_evo, tab_comp = st.tabs(["📈 Evolução", "⚖️ Comparativo"])
-        with tab_evo:
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            df_hist = pd.DataFrame(hist_data)
-            fig_line = px.line(df_hist, x='periodo', y='score', markers=True)
-            st.plotly_chart(fig_line, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        with tab_comp:
-            c1, c2 = st.columns(2)
-            p_a = c1.selectbox("A", [h['periodo'] for h in hist_data], index=1)
-            p_b = c2.selectbox("B", [h['periodo'] for h in hist_data], index=0)
-            d_a = next(h for h in hist_data if h['periodo'] == p_a)
-            d_b = next(h for h in hist_data if h['periodo'] == p_b)
-            if st.button("📥 Baixar Relatório Evolutivo (HTML)", type="primary"):
-                 st.markdown("---")
-                 logo_html = get_logo_html(150)
-                 diff = d_b['score'] - d_a['score']
-                 
-                 chart_css_viz = f"""
-                 <div style="text-align:center; padding:20px; border:1px solid #eee; border-radius:8px; font-family:sans-serif;">
-                     <strong>Score {p_a}:</strong> {d_a['score']} <br>
-                     <div style="width:100%; background:#eee; height:10px; border-radius:5px; margin:5px 0;">
-                        <div style="width:{(d_a['score']/5)*100}%; background:{COR_COMP_A}; height:10px; border-radius:5px;"></div>
-                     </div>
-                     <strong>Score {p_b}:</strong> {d_b['score']} <br>
-                     <div style="width:100%; background:#eee; height:10px; border-radius:5px; margin:5px 0;">
-                        <div style="width:{(d_b['score']/5)*100}%; background:{COR_COMP_B}; height:10px; border-radius:5px;"></div>
-                     </div>
-                 </div>
-                 """
-
-                 html_comp = textwrap.dedent(f"""
-                 <div class="a4-paper">
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
-                        <div>{logo_html}</div>
-                        <div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">RELATÓRIO EVOLUTIVO</div></div>
-                    </div>
-                    <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
-                        <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
-                        <div style="font-size:9px;">Comparativo: {p_a} vs {p_b}</div>
-                    </div>
-                    <table class="rep-table" style="margin-bottom:20px;">
-                        <tr><th>INDICADOR</th><th>{p_a}</th><th>{p_b}</th><th>VARIAÇÃO</th></tr>
-                        <tr><td>Score Geral</td><td>{d_a['score']}</td><td>{d_b['score']}</td><td>{diff:.2f}</td></tr>
-                    </table>
-                    <div style="margin-bottom:20px;">{chart_css_viz}</div>
-                 </div>
-                 """)
-                 b64_comp = base64.b64encode(html_comp.encode()).decode()
-                 href_comp = f'<a href="data:text/html;base64,{b64_comp}" download="Relatorio_Evolutivo.html" style="text-decoration:none; background-color:{COR_PRIMARIA}; color:white; padding:10px 20px; border-radius:5px; font-weight:bold;">📥 BAIXAR ARQUIVO (HTML)</a>'
-                 st.markdown(href_comp, unsafe_allow_html=True)
-
     elif selected == "Configurações":
         if perm == "Master":
             st.title("Configurações")
@@ -818,9 +801,9 @@ def survey_screen():
                 if res.data: st.session_state.current_company = res.data[0]
             except: pass
         else:
-            c = next((x for x in st.session_state.companies_db if x['id'] == cod), None)
-            if c: st.session_state.current_company = c
-            
+            company = next((c for c in st.session_state.companies_db if c['id'] == cod), None)
+            if company: st.session_state.current_company = company
+    
     if 'current_company' not in st.session_state: st.error("Link inválido."); return
     
     comp = st.session_state.current_company
@@ -830,14 +813,37 @@ def survey_screen():
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
     
+    # CHECAGEM DE VALIDADE DO LINK
+    if comp.get('valid_until'):
+        try:
+            valid_date = datetime.date.fromisoformat(comp['valid_until'])
+            if datetime.date.today() > valid_date:
+                st.error("⛔ Este link de avaliação expirou.")
+                return
+        except: pass
+
     st.markdown("""<div class="security-alert"><strong>🔒 AVALIAÇÃO VERIFICADA E SEGURA</strong><br>Esta pesquisa segue rigorosos padrões de confidencialidade.<br><ul><li><strong>Anonimato Garantido:</strong> A empresa NÃO tem acesso à sua resposta individual.</li><li><strong>Uso do CPF:</strong> Seu CPF é usado <u>apenas</u> para validar que você é um colaborador único e impedir duplicidades. Ele é transformado em um código criptografado (hash) imediatamente.</li><li><strong>Sigilo:</strong> Os resultados são apresentados apenas em formato estatístico (médias do grupo).</li></ul></div>""", unsafe_allow_html=True)
     
     with st.form("survey"):
         c1, c2 = st.columns(2)
         cpf = c1.text_input("CPF (Apenas números)")
-        s_list = comp.get('setores_lista', ['Geral'])
-        if isinstance(s_list, str): s_list = ['Geral']
-        setor = c2.selectbox("Setor", s_list)
+        
+        # Garante lista de setores
+        # AQUI ESTAVA O PROBLEMA DE LISTA, AGORA ELE BUSCA ORG_STRUCTURE SE EXISTIR OU SETORES_LISTA
+        s_options = ["Geral"]
+        if comp.get('org_structure'):
+            s_options = list(comp['org_structure'].keys())
+        elif comp.get('setores_lista'):
+            s_options = comp['setores_lista']
+            
+        setor = c2.selectbox("Setor", s_options)
+        
+        # CARGO DINÂMICO (Carrega baseado no setor escolhido se houver estrutura)
+        cargos_op = ["Geral"]
+        if comp.get('org_structure') and setor in comp['org_structure']:
+            cargos_op = comp['org_structure'][setor]
+        
+        cargo = st.selectbox("Cargo", cargos_op)
         
         st.markdown("---")
         tabs = st.tabs(list(st.session_state.hse_questions.keys()))
