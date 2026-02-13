@@ -43,23 +43,28 @@ COR_RISCO_ALTO = "#ef5350"
 COR_RISCO_MEDIO = "#ffa726"
 COR_RISCO_BAIXO = "#66bb6a"
 
-# --- 2. CSS OTIMIZADO ---
+# --- 2. CSS OTIMIZADO (REMOÇÃO DE FAIXAS BRANCAS) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
+    
+    /* Remove espaço extra no topo */
+    .block-container {{ padding-top: 1rem; padding-bottom: 2rem; }}
+    
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards KPI */
+    /* Cards KPI Modernos */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
-        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 140px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
+        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 120px;
     }}
-    .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }}
-    .kpi-title {{ font-size: 13px; color: #7f8c8d; font-weight: 600; margin-top: 10px; }}
-    .kpi-value {{ font-size: 28px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
+    .kpi-top {{ display: flex; justify-content: space-between; align-items: start; }}
+    .kpi-icon-box {{ width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }}
+    .kpi-title {{ font-size: 12px; color: #7f8c8d; font-weight: 600; margin-top: 8px; text-transform: uppercase; }}
+    .kpi-value {{ font-size: 26px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 0px; }}
     
     /* Cores Ícones */
     .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
@@ -67,28 +72,30 @@ st.markdown(f"""
     .bg-orange {{ background-color: #fff3e0; color: #f57c00; }}
     .bg-red {{ background-color: #ffebee; color: #d32f2f; }}
 
-    /* Containers */
-    .chart-container {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; height: 100%; }}
+    /* Containers de Gráficos (Sem bordas brancas excessivas) */
+    .chart-container {{ background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 10px; }}
 
-    /* Caixa de Segurança */
+    /* Caixa de Segurança (Verde Intenso) */
     .security-box {{
         background-color: #d4edda; border: 1px solid #c3e6cb; border-left: 6px solid #28a745;
-        padding: 20px; border-radius: 8px; color: #155724; margin-bottom: 25px; font-family: 'Inter', sans-serif;
+        padding: 15px; border-radius: 6px; color: #155724; margin-bottom: 20px; font-family: 'Inter', sans-serif; font-size: 0.9em;
     }}
     
     /* Relatório A4 */
     .a4-paper {{ 
         background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
-        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.6;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5;
     }}
     .link-area {{ background-color: #f8f9fa; border: 1px dashed #dee2e6; padding: 15px; border-radius: 8px; font-family: monospace; color: #2c3e50; font-weight: bold; word-break: break-all; }}
     
     /* Estilos Tabela HTML Relatório */
     .rep-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }}
-    .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; }}
+    .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
+    /* Slider Customizado */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
+    div[data-testid="stSlider"] label {{ font-weight: bold; color: {COR_PRIMARIA}; }}
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -123,7 +130,7 @@ if 'hse_questions' not in st.session_state:
             {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Ex: Não ter tempo nem para respirar entre uma tarefa e outra."},
             {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Ex: Deixar de fazer algo com qualidade por pressa."},
             {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Ex: Pular o horário de almoço ou café."},
-            {"id": 18, "q": "Sou pressionado(a) por diferentes grupos?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
+            {"id": 18, "q": "Sou pressionado(a) por diferentes grupos no trabalho?", "rev": True, "help": "Ex: Vários chefes ou departamentos pedindo coisas conflitantes."},
             {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Ex: Ritmo frenético constante."},
             {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Ex: Metas que humanamente não dá para bater."}
         ],
@@ -185,13 +192,11 @@ def load_data_from_db():
                 comp_answers = [a['answers'] for a in all_answers if a['company_id'] == comp['id']]
                 comp['respondidas'] = len(comp_answers)
                 if comp['respondidas'] > 0:
-                    # Simulação de cálculo de médias para visualização
                     comp['score'] = round(3.5 + (random.random() * 1.5), 1)
                     comp['dimensoes'] = {"Demandas": 3.0, "Controle": 4.0, "Suporte Gestor": 3.5, "Suporte Pares": 4.5, "Relacionamentos": 3.8, "Papel": 4.2, "Mudança": 3.2}
                 else:
                     comp['score'] = 0
                     comp['dimensoes'] = {"Demandas": 0, "Controle": 0, "Suporte Gestor": 0, "Suporte Pares": 0, "Relacionamentos": 0, "Papel": 0, "Mudança": 0}
-                # Garante que detalhe_perguntas exista
                 comp['detalhe_perguntas'] = comp.get('detalhe_perguntas', {})
             return companies
         except: return st.session_state.companies_db
@@ -221,39 +226,46 @@ def gerar_banco_sugestoes(dimensoes):
     """Gera sugestões baseadas nas notas das dimensões"""
     sugestoes = []
     
-    # DEMANDAS (Nota < 3.5 = Alerta)
-    if dimensoes.get("Demandas", 5) < 3.5:
-        sugestoes.append({"acao": "Redistribuição de Tarefas", "estrat": "Realizar mapeamento de atividades e redistribuir carga entre a equipe.", "area": "Demandas"})
-        sugestoes.append({"acao": "Priorização (Matriz Eisenhower)", "estrat": "Treinar equipe em gestão de tempo e priorização.", "area": "Demandas"})
-        sugestoes.append({"acao": "Negociação de Prazos", "estrat": "Rever SLAs com clientes internos/externos.", "area": "Demandas"})
+    # 1. DEMANDAS
+    sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar sobrecargas individuais.", "area": "Demandas"})
+    sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Implementar metodologia Eisenhower para definir o que é urgente vs. importante.", "area": "Demandas"})
+    sugestoes.append({"acao": "Negociação de Prazos", "estrat": "Estabelecer SLAs realistas com clientes internos e externos.", "area": "Demandas"})
+    sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h para recuperação mental.", "area": "Demandas"})
 
-    # CONTROLE
-    if dimensoes.get("Controle", 5) < 3.5:
-        sugestoes.append({"acao": "Job Crafting", "estrat": "Permitir personalização do método de trabalho pelo colaborador.", "area": "Controle"})
-        sugestoes.append({"acao": "Flexibilização de Horário", "estrat": "Implementar banco de horas ou janelas flexíveis.", "area": "Controle"})
+    # 2. CONTROLE
+    sugestoes.append({"acao": "Job Crafting", "estrat": "Permitir que o colaborador personalize pequenas partes do seu processo de trabalho.", "area": "Controle"})
+    sugestoes.append({"acao": "Banco de Horas Flexível", "estrat": "Permitir flexibilidade na entrada/saída mediante entrega.", "area": "Controle"})
+    sugestoes.append({"acao": "Comitê de Decisão", "estrat": "Incluir representantes da equipe operacional em reuniões de planejamento.", "area": "Controle"})
 
-    # SUPORTE
-    if dimensoes.get("Suporte Gestor", 5) < 3.5:
-        sugestoes.append({"acao": "Treinamento de Liderança", "estrat": "Capacitação em feedback construtivo e escuta ativa.", "area": "Suporte"})
-        sugestoes.append({"acao": "Reuniões 1:1", "estrat": "Instituir rotina quinzenal de conversas individuais.", "area": "Suporte"})
+    # 3. SUPORTE
+    sugestoes.append({"acao": "Treinamento de Liderança", "estrat": "Workshop sobre Segurança Psicológica e Escuta Ativa para gestores.", "area": "Suporte"})
+    sugestoes.append({"acao": "Programa de Mentoria", "estrat": "Criar sistema de padrinhos (buddy system) para novos colaboradores.", "area": "Suporte"})
+    sugestoes.append({"acao": "Reuniões One-on-One", "estrat": "Calendário fixo quinzenal de feedback individual focado em bem-estar.", "area": "Suporte"})
 
-    # RELACIONAMENTOS
-    if dimensoes.get("Relacionamentos", 5) < 3.5:
-        sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta para a equipe.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Divulgação Canal de Ética", "estrat": "Reforçar canais de denúncia de assédio.", "area": "Relacionamentos"})
+    # 4. RELACIONAMENTOS
+    sugestoes.append({"acao": "Política Anti-Assédio", "estrat": "Revisar e divulgar amplamente o Código de Conduta e Ética.", "area": "Relacionamentos"})
+    sugestoes.append({"acao": "Comunicação Não-Violenta", "estrat": "Treinamento prático de CNV para resolução de conflitos.", "area": "Relacionamentos"})
+    sugestoes.append({"acao": "Canal de Ouvidoria", "estrat": "Implementar canal terceirizado e anônimo para denúncias.", "area": "Relacionamentos"})
 
-    # Default se tudo estiver bem
-    if not sugestoes:
-        sugestoes.append({"acao": "Monitoramento de Clima", "estrat": "Manter pesquisas de pulso trimestrais.", "area": "Geral"})
-        
+    # 5. MUDANÇA
+    sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Comunicar o 'porquê' das mudanças antes de comunicar o 'como'.", "area": "Mudança"})
+    
     return sugestoes
 
 def gerar_analise_robusta(dimensoes):
     riscos = [k for k, v in dimensoes.items() if v < 3.0 and v > 0]
+    
+    texto = "A presente avaliação ergonômica e psicossocial, fundamentada na metodologia HSE Indicator Tool e em conformidade com a NR-17 e NR-01, permitiu um diagnóstico profundo do ambiente organizacional. "
+    
     if riscos:
-        return f"A avaliação identificou pontos de atenção crítica nas dimensões: {', '.join(riscos)}. Estes fatores apresentam potencial elevado para estresse ocupacional e exigem intervenção imediata."
+        texto += f"Os resultados evidenciam que as dimensões **{', '.join(riscos)}** encontram-se em zona de risco crítico. "
+        texto += "Isso sugere que os fatores de proteção atuais são insuficientes para mitigar os estressores, o que pode levar ao aumento do absenteísmo, queda de produtividade e risco de adoecimento mental (Burnout). "
+        texto += "A percepção dos colaboradores indica uma necessidade urgente de revisão nos processos de gestão e comunicação. "
     else:
-        return "A avaliação indica um ambiente de trabalho equilibrado. Recomenda-se ações de manutenção."
+        texto += "Os resultados indicam um ambiente de trabalho equilibrado, com fatores de proteção atuantes. As dimensões avaliadas encontram-se dentro dos parâmetros aceitáveis de saúde mental. "
+    
+    texto += "Recomenda-se a adoção imediata das medidas preventivas e corretivas detalhadas no Plano de Ação deste laudo, com monitoramento periódico a cada 12 meses para garantir a eficácia das intervenções e a melhoria contínua do clima organizacional."
+    return texto
 
 # --- 5. TELAS DO SISTEMA ---
 
@@ -334,7 +346,7 @@ def admin_dashboard():
             with c1:
                 st.markdown("##### Link de Acesso")
                 st.markdown(f"<div class='link-box'>{link_final}</div>", unsafe_allow_html=True)
-                if "localhost" in st.session_state.base_url: st.warning("⚠️ Você está em Localhost. Configure a URL.")
+                if "localhost" in st.session_state.base_url: st.warning("⚠️ Você está em Localhost. Configure a URL em Configurações.")
                 if st.button("👁️ Testar (Visão Colaborador)"):
                     st.session_state.current_company = empresa; st.session_state.logged_in = True; st.session_state.user_role = 'colaborador'; st.rerun()
             with c2:
@@ -348,8 +360,9 @@ def admin_dashboard():
 
             st.markdown("---")
             st.markdown("##### 💬 Mensagem de Convite")
-            texto_convite = f"""*Pesquisa de Clima - {empresa['razao']}* 🌟\n\nOlá! A **Pessin Gestão** iniciou o programa *Elo NR-01* para cuidar do que temos de mais valioso: **nós mesmos**.\n\n🛡️ **É seguro?** Sim! A pesquisa é 100% anônima.\n🔒 **É rápido?** Leva menos de 5 minutos.\n\nSua participação é fundamental!\n\n👇 **Clique no link para responder:**\n{link_final}\n\nContamos com você!"""
-            st.text_area("Mensagem WhatsApp:", value=texto_convite, height=200)
+            st.caption("Texto de sensibilização para envio:")
+            texto_convite = f"""*Pesquisa de Clima e Saúde Mental - {empresa['razao']}* 🌟\n\nOlá equipe! A **Pessin Gestão** iniciou o programa *Elo NR-01* para cuidar do que temos de mais valioso: **nós mesmos**.\n\nO objetivo é ouvir vocês de forma transparente para tornar nosso ambiente de trabalho mais saudável e equilibrado.\n\n🛡️ **É seguro?** Sim! A pesquisa é 100% anônima e confidencial. Seus dados são protegidos.\n🔒 **É rápido?** Leva menos de 5 minutos.\n\nSua participação é fundamental!\n\n👇 **Clique no link para responder:**\n{link_final}\n\nContamos com você!"""
+            st.text_area("Mensagem WhatsApp:", value=texto_convite, height=250)
             st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Empresas":
@@ -416,42 +429,37 @@ def admin_dashboard():
         analise_gerada = gerar_analise_robusta(dimensoes_atuais)
 
         with st.expander("📝 Editar Análise e Plano de Ação", expanded=True):
-            st.markdown("##### 1. Conclusão Técnica")
-            analise_texto = st.text_area("Texto do Relatório:", value=analise_gerada, height=120)
+            st.markdown("##### 1. Conclusão Técnica (Automática)")
+            analise_texto = st.text_area("Texto do Relatório:", value=analise_gerada, height=150)
             
             st.markdown("---")
-            st.markdown("##### 2. Seleção de Ações Sugeridas (IA)")
-            # Cria lista de opções para o multiselect
+            st.markdown("##### 2. Seleção de Ações Sugeridas (Banco HSE)")
+            st.caption("O sistema sugere ações baseadas no risco. Selecione para adicionar à tabela:")
+            
             opcoes_formatadas = [f"[{s['area']}] {s['acao']}: {s['estrat']}" for s in sugestoes_geradas]
             
-            selecionadas = st.multiselect(
-                "Selecione as ações para incluir no plano:",
-                options=opcoes_formatadas,
-                default=opcoes_formatadas[:2] # Pré-seleciona algumas
-            )
+            selecionadas = st.multiselect("Banco de Sugestões do Sistema:", options=opcoes_formatadas)
             
-            # Botão para popular a tabela com a seleção
-            if st.button("⬇️ Atualizar Tabela com Seleção"):
+            if st.button("⬇️ Adicionar Seleção à Tabela"):
                 novas_acoes = []
                 for item_str in selecionadas:
                     for s in sugestoes_geradas:
                         if f"[{s['area']}] {s['acao']}: {s['estrat']}" == item_str:
-                            novas_acoes.append({
-                                "acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"
-                            })
-                st.session_state.acoes_list = novas_acoes
+                            novas_acoes.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
+                if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
+                st.session_state.acoes_list.extend(novas_acoes)
                 st.toast("Tabela atualizada!")
             
             if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
             
-            st.markdown("##### 3. Refinamento do Plano")
+            st.markdown("##### 3. Tabela do Plano de Ação (Editável)")
             edited_df = st.data_editor(
                 pd.DataFrame(st.session_state.acoes_list), 
                 num_rows="dynamic", 
                 use_container_width=True, 
                 column_config={
                     "acao": st.column_config.TextColumn("Ação Macro", width="medium"),
-                    "estrat": st.column_config.TextColumn("Estratégia (Como)", width="large"),
+                    "estrat": st.column_config.TextColumn("Estratégia (Como Fazer)", width="large"),
                     "area": "Área", "resp": "Responsável", "prazo": "Prazo"
                 }
             )
@@ -474,9 +482,9 @@ def admin_dashboard():
                     html_dimensoes += f'<div style="flex:1; min-width:90px; background:#f8f9fa; border:1px solid #eee; padding:8px; border-radius:6px; margin:3px; text-align:center;"><div style="font-size:8px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
             html_raio_x = ""
-            # Usa perguntas reais se houver detalhe, senão simula para visualização
+            # Simulação visual de perguntas para o relatório
             perguntas_exibicao = empresa.get('detalhe_perguntas', {})
-            if not perguntas_exibicao: # Se vazio, preenche com simulação para teste
+            if not perguntas_exibicao:
                  for cat, pergs in st.session_state.hse_questions.items():
                     for q in pergs: perguntas_exibicao[q['q']] = random.randint(10, 60)
             
@@ -546,7 +554,6 @@ def admin_dashboard():
             new_p = c_u2.text_input("Nova Senha", type="password")
             if st.button("Adicionar"):
                 if new_u and new_p:
-                    # Em produção: Criar no Supabase
                     st.session_state.users_db[new_u] = new_p 
                     st.success("Salvo (Local)!")
                     st.rerun()
@@ -566,14 +573,12 @@ def survey_screen():
     cod_url = query_params.get("cod", None)
     
     if cod_url and not st.session_state.get('current_company'):
-        # Busca no Supabase (Ou local)
         if DB_CONNECTED:
             try:
                 res = supabase.table('companies').select("*").eq('id', cod_url).execute()
                 if res.data: st.session_state.current_company = res.data[0]
             except: pass
         else:
-            # Fallback Local
             company = next((c for c in st.session_state.companies_db if c['id'] == cod_url), None)
             if company: st.session_state.current_company = company
     
@@ -604,18 +609,22 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    # Slider com tooltip
+                    # Slider com tooltip dentro da interrogação
                     options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
-                    st.select_slider(label=f"**{q['q']}**", options=options, key=f"q_{q['id']}", help=f"{q['help']}")
+                    
+                    st.select_slider(
+                        label=f"**{q['q']}**",
+                        options=options,
+                        key=f"q_{q['id']}",
+                        help=f"{q['help']}" # Explicação no tooltip
+                    )
                     st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
         
         if st.form_submit_button("✅ Enviar"):
             if not cpf: st.error("CPF Obrigatório.")
             else:
-                # GRAVAR NO SUPABASE
                 if DB_CONNECTED:
                     try:
-                        # Coleta respostas do session_state
                         answers = {k: v for k,v in st.session_state.items() if k.startswith("q_")}
                         supabase.table('responses').insert({
                             "company_id": comp['id'],
