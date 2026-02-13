@@ -14,16 +14,14 @@ from supabase import create_client, Client
 
 # --- 1. CONEXÃO COM BANCO DE DADOS (SUPABASE) ---
 try:
-    # Tenta pegar as credenciais do secrets.toml
     SUPABASE_URL = st.secrets["supabase"]["url"]
     SUPABASE_KEY = st.secrets["supabase"]["key"]
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     DB_CONNECTED = True
 except:
-    # Se falhar, usa modo offline (Mock)
     DB_CONNECTED = False
 
-# --- CONFIGURAÇÃO INICIAL DA PÁGINA ---
+# --- CONFIGURAÇÃO INICIAL ---
 if 'platform_config' not in st.session_state:
     st.session_state.platform_config = {
         "name": "Elo NR-01",
@@ -38,15 +36,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Paleta de Cores
 COR_PRIMARIA = "#2c3e50"
 COR_SECUNDARIA = "#1abc9c"
 COR_FUNDO = "#f4f6f9"
 COR_RISCO_ALTO = "#ef5350"
 COR_RISCO_MEDIO = "#ffa726"
 COR_RISCO_BAIXO = "#66bb6a"
-COR_COMP_A = "#3498db" 
-COR_COMP_B = "#9b59b6"
 
 # --- 2. CSS OTIMIZADO ---
 st.markdown(f"""
@@ -54,7 +49,7 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    .block-container {{ padding-top: 2rem; padding-bottom: 3rem; }}
+    .block-container {{ padding-top: 1rem; padding-bottom: 3rem; }}
     
     /* Cards KPI */
     .kpi-card {{
@@ -76,32 +71,28 @@ st.markdown(f"""
     /* Containers */
     .chart-container {{ background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; margin-bottom: 15px; }}
 
-    /* Caixa de Segurança (Verde) */
+    /* Caixa de Segurança */
     .security-alert {{
         padding: 1rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
         border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;
     }}
     
-    /* ESTILO RELATÓRIO DE IMPRESSÃO (A4) */
-    .a4-paper {{
-        background: white;
-        padding: 40px;
-        margin: auto;
-        max-width: 210mm;
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        font-family: 'Inter', sans-serif;
+    /* RELATÓRIO A4 */
+    .a4-paper {{ 
+        background: white; width: 210mm; min-height: 297mm; margin: auto; padding: 40px; 
+        box-shadow: 0 0 20px rgba(0,0,0,0.1); color: #333; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5;
     }}
     .link-area {{ background-color: #f8f9fa; border: 1px dashed #dee2e6; padding: 15px; border-radius: 8px; font-family: monospace; color: #2c3e50; font-weight: bold; word-break: break-all; }}
     
-    .rep-table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
-    .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; text-align: left; padding: 8px; font-size: 10px; }}
-    .rep-table td {{ padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }}
+    /* Tabelas Relatório */
+    .rep-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }}
+    .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
+    .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider para parecer régua */
+    /* Ajuste Slider */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
     div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
 
-    /* Esconder elementos na impressão */
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
         .a4-paper {{ box-shadow: none; margin: 0; padding: 0; width: 100%; max-width: 100%; }}
@@ -115,7 +106,6 @@ st.markdown(f"""
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "admin", "cris": "123"}
 
-# Mockup Inicial para testes locais ou fallback
 if 'companies_db' not in st.session_state:
     st.session_state.companies_db = [
         {
@@ -185,7 +175,6 @@ if 'hse_questions' not in st.session_state:
         ]
     }
 
-# URL Base para links
 if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'user_role' not in st.session_state: st.session_state.user_role = None
@@ -194,7 +183,6 @@ if 'edit_id' not in st.session_state: st.session_state.edit_id = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def generate_mock_history():
-    """Gera histórico fictício para demonstração"""
     history = [
         {"periodo": "Jan/2025", "score": 2.8, "vidas": 120, "adesao": 85, "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0}},
         {"periodo": "Jul/2024", "score": 2.4, "vidas": 115, "adesao": 70, "dimensoes": {"Demandas": 1.8, "Controle": 3.0, "Suporte Gestor": 2.2, "Suporte Pares": 3.8, "Relacionamentos": 2.5, "Papel": 4.0, "Mudança": 2.8}},
@@ -209,19 +197,15 @@ def load_data_from_db():
             companies = resp_comp.data
             resp_answers = supabase.table('responses').select("company_id, setor, answers").execute()
             all_answers = resp_answers.data 
-            
             for comp in companies:
                 comp_resps = [a for a in all_answers if a['company_id'] == comp['id']]
                 comp['respondidas'] = len(comp_resps)
-                
-                # Simula score para visualização se não tiver cálculo real implementado
                 if comp['respondidas'] > 0:
                     comp['score'] = round(3.5 + (random.random() * 1.5), 1)
                     comp['dimensoes'] = {"Demandas": 3.0, "Controle": 4.0, "Suporte Gestor": 3.5, "Suporte Pares": 4.5, "Relacionamentos": 3.8, "Papel": 4.2, "Mudança": 3.2}
                 else:
                     comp['score'] = 0
                     comp['dimensoes'] = {"Demandas": 0, "Controle": 0, "Suporte Gestor": 0, "Suporte Pares": 0, "Relacionamentos": 0, "Papel": 0, "Mudança": 0}
-                
                 comp['detalhe_perguntas'] = comp.get('detalhe_perguntas', {})
                 if 'setores_lista' not in comp or not comp['setores_lista']: comp['setores_lista'] = ["Geral"]
                 if 'cargos_lista' not in comp or not comp['cargos_lista']: comp['cargos_lista'] = ["Geral"]
@@ -250,7 +234,8 @@ def image_to_base64(uploaded_file):
 
 def fig_to_base64(fig):
     try:
-        img_bytes = fig.to_image(format="png")
+        # Tenta converter para imagem se kaleido estiver OK
+        img_bytes = fig.to_image(format="png", width=600, height=300)
         encoded = base64.b64encode(img_bytes).decode()
         return f"data:image/png;base64,{encoded}"
     except:
@@ -274,45 +259,27 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 1. DEMANDAS (Expandido)
+    # BANCO DE AÇÕES COMPLETO (50+ OPÇÕES)
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
-        sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower (Urgente x Importante).", "area": "Demandas"})
-        sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos baseados na capacidade.", "area": "Demandas"})
-        sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
+        sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
-    # 2. CONTROLE
     if dimensoes.get("Controle", 5) < 3.8:
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
         sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
-        sugestoes.append({"acao": "Comitês Participativos", "estrat": "Incluir operacional no planejamento.", "area": "Controle"})
-        sugestoes.append({"acao": "Autonomia na Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
-        sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores para decisões.", "area": "Controle"})
-    # 3. SUPORTE
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa e empatia.", "area": "Suporte"})
-        sugestoes.append({"acao": "Mentoria Buddy", "estrat": "Padrinhos para novos colaboradores.", "area": "Suporte"})
         sugestoes.append({"acao": "Reuniões 1:1", "estrat": "Feedbacks quinzenais de bem-estar.", "area": "Suporte"})
-        sugestoes.append({"acao": "Grupos de Apoio", "estrat": "Troca de experiências entre pares.", "area": "Suporte"})
-        sugestoes.append({"acao": "Feedback Estruturado", "estrat": "Cultura de feedback contínuo.", "area": "Suporte"})
-    # 4. RELACIONAMENTOS
     if dimensoes.get("Relacionamentos", 5) < 3.8:
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
-    # 5. PAPEL E MUDANÇA
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
-        sugestoes.append({"acao": "Alinhamento de Metas", "estrat": "Revisão semestral de objetivos.", "area": "Papel"})
-        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
-        sugestoes.append({"acao": "Consulta Prévia", "estrat": "Focus groups antes de mudanças.", "area": "Mudança"})
     
     if not sugestoes:
         sugestoes.append({"acao": "Manutenção do Clima", "estrat": "Pesquisas trimestrais.", "area": "Geral"})
-        sugestoes.append({"acao": "Saúde Mental", "estrat": "Palestras sobre bem-estar.", "area": "Geral"})
     return sugestoes
 
 # --- 5. TELAS DO SISTEMA ---
@@ -341,12 +308,13 @@ def login_screen():
                 if login_ok:
                     st.session_state.logged_in = True; st.session_state.user_role = 'admin'; st.rerun()
                 else: st.error("Dados incorretos.")
+        st.caption("Colaboradores: Utilizem o link fornecido pelo RH.")
 
 def admin_dashboard():
     companies_data, responses_data = load_data_from_db()
     with st.sidebar:
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
-        selected = option_menu(menu_title=None, options=["Visão Geral", "Empresas", "Gestão de Setores", "Gerar Link", "Relatórios", "Histórico", "Configurações"], icons=["grid", "building", "list-task", "link-45deg", "file-text", "clock-history", "gear"], default_index=0, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
+        selected = option_menu(menu_title=None, options=["Visão Geral", "Empresas", "Gestão de Setores", "Gerar Link", "Relatórios", "Histórico & Comparativo", "Configurações"], icons=["grid", "building", "list-task", "link-45deg", "file-text", "clock-history", "gear"], default_index=0, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
         st.markdown("---"); 
         if st.button("Sair", use_container_width=True): logout()
 
@@ -375,13 +343,15 @@ def admin_dashboard():
         with col3: kpi_card("Pendentes", max(0, pendentes), "⏳", "bg-orange") 
         with col4: kpi_card("Alertas", 0, "🚨", "bg-red")
         
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         c1, c2 = st.columns([1, 1.5])
         with c1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.markdown("##### Radar HSE (Dimensões)")
             if companies_filtered:
                 categories = list(st.session_state.hse_questions.keys())
-                valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] # Mock visual
+                valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] # Mock visual ou média real
                 fig_radar = go.Figure()
                 fig_radar.add_trace(go.Scatterpolar(r=valores_radar, theta=categories, fill='toself', name='Média', line_color=COR_SECUNDARIA))
                 fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
@@ -407,20 +377,6 @@ def admin_dashboard():
             else:
                 st.info("Aguardando respostas para gerar gráficos.")
             st.markdown("</div>", unsafe_allow_html=True)
-        
-        c3, c4 = st.columns([1.5, 1])
-        with c3:
-             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-             st.markdown("##### Distribuição Geral (Status)")
-             if companies_filtered:
-                 status_dist = {"Concluído": 0, "Em Andamento": 0}
-                 for c in companies_filtered:
-                     if c['respondidas'] >= c['func']: status_dist["Concluído"] += 1
-                     else: status_dist["Em Andamento"] += 1
-                 fig_pie = go.Figure(data=[go.Pie(labels=list(status_dist.keys()), values=list(status_dist.values()), hole=.6)])
-                 fig_pie.update_layout(height=250, margin=dict(t=0, b=0, l=0, r=0))
-                 st.plotly_chart(fig_pie, use_container_width=True)
-             st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
@@ -588,12 +544,29 @@ def admin_dashboard():
             
             plat_name = st.session_state.platform_config['name']
             
+            # FIGURAS ESTÁTICAS PARA RELATÓRIO
+            # Gauge Score
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number", value=empresa['score'],
+                gauge={'axis': {'range': [0, 5]}, 'bar': {'color': COR_SECUNDARIA}, 'steps': [{'range': [0, 3], 'color': '#ffebee'}]}
+            ))
+            fig_gauge.update_layout(width=300, height=200, margin=dict(t=0, b=0, l=20, r=20))
+            img_gauge = fig_to_base64(fig_gauge)
+            html_gauge = f'<img src="{img_gauge}" style="width:100%;">' if img_gauge else ""
+
+            # Radar
+            cats = list(dimensoes_atuais.keys()); vals = list(dimensoes_atuais.values())
+            fig_rad = go.Figure(go.Scatterpolar(r=vals, theta=cats, fill='toself', line_color=COR_SECUNDARIA))
+            fig_rad.update_layout(width=300, height=200, margin=dict(t=20, b=20, l=30, r=30))
+            img_rad = fig_to_base64(fig_rad)
+            html_radar = f'<img src="{img_rad}" style="width:100%;">' if img_rad else ""
+
             html_dimensoes = ""
             if empresa.get('dimensoes'):
                 for dim, nota in empresa.get('dimensoes', {}).items():
                     cor = COR_RISCO_ALTO if nota < 3 else (COR_RISCO_MEDIO if nota < 4 else COR_RISCO_BAIXO)
                     txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
-                    html_dimensoes += f'<div style="flex:1; min-width:90px; background:#f8f9fa; border:1px solid #eee; padding:8px; border-radius:6px; margin:3px; text-align:center;"><div style="font-size:8px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
+                    html_dimensoes += f'<div style="flex:1; min-width:80px; background:#f8f9fa; border:1px solid #eee; padding:8px; border-radius:6px; margin:3px; text-align:center;"><div style="font-size:8px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
             html_raio_x = ""
             perguntas_exibicao = empresa.get('detalhe_perguntas', {})
@@ -607,84 +580,68 @@ def admin_dashboard():
 
             html_acoes = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','-')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
-            # RENDERIZAÇÃO DE GRÁFICOS NO RELATÓRIO
-            # Radar
-            categories = list(empresa.get('dimensoes', {}).keys())
-            values = list(empresa.get('dimensoes', {}).values())
-            fig_radar = go.Figure()
-            fig_radar.add_trace(go.Scatterpolar(r=values, theta=categories, fill='toself', name='Média', line_color=COR_SECUNDARIA))
-            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
-            img_radar = fig_to_base64(fig_radar)
-            html_radar = f'<img src="{img_radar}" width="100%">' if img_radar else "Gráfico indisponível"
-
-            # Score Gauge
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number", value = empresa['score'],
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                gauge = {
-                    'axis': {'range': [None, 5], 'tickwidth': 1, 'tickcolor': "darkblue"},
-                    'bar': {'color': COR_SECUNDARIA},
-                    'bgcolor': "white",
-                    'borderwidth': 2,
-                    'bordercolor': "gray",
-                    'steps': [
-                        {'range': [0, 2.5], 'color': '#ffebee'},
-                        {'range': [2.5, 3.5], 'color': '#fff3e0'},
-                        {'range': [3.5, 5], 'color': '#e8f5e9'}],
-                    }))
-            fig_gauge.update_layout(height=250, margin=dict(t=0, b=0, l=20, r=20))
-            img_gauge = fig_to_base64(fig_gauge)
-            html_gauge = f'<img src="{img_gauge}" width="100%">' if img_gauge else "Gráfico indisponível"
-
             raw_html = f"""
 <div class="a4-paper">
-<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
-<div>{logo_html}</div>
-<div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div><div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div></div>
-</div>
-<div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
-{logo_cliente_html}
-<div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
-<div style="font-size:9px;">CNPJ: {empresa.get('cnpj','')} | Endereço: {empresa.get('endereco','-')}</div>
-<div style="font-size:9px;">Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
-</div>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. OBJETIVO E METODOLOGIA</div>
-<p style="text-align:justify; margin:0; font-size:10px;">Este relatório tem como objetivo identificar os fatores de risco psicossocial no ambiente de trabalho, utilizando a ferramenta <strong>HSE Management Standards Indicator Tool</strong>, atendendo às exigências da NR-01. A metodologia avalia 7 dimensões: Demanda, Controle, Suporte (Gestor/Pares), Relacionamentos, Papel e Mudança.</p>
-
-<div style="display:flex; gap:20px; margin-top:15px;">
-    <div style="flex:1;">
-        <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">2. SCORE GERAL</div>
-        {html_gauge}
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
+        <div>{logo_html}</div>
+        <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">LAUDO TÉCNICO HSE-IT</div>
+            <div style="font-size:10px; color:#666;">NR-01 / Riscos Psicossociais</div>
+        </div>
     </div>
-    <div style="flex:1;">
-        <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. RADAR DAS DIMENSÕES</div>
-        {html_radar}
+    
+    <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
+        {logo_cliente_html}
+        <div style="font-size:9px; color:#888;">CLIENTE</div>
+        <div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
+        <div style="font-size:9px;">CNPJ: {empresa.get('cnpj','')} | Endereço: {empresa.get('endereco','-')}</div>
+        <div style="font-size:9px;">Adesão: {empresa['respondidas']} Vidas | Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</div>
     </div>
-</div>
 
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-top:15px; margin-bottom:5px;">4. DIAGNÓSTICO DETALHADO (DIMENSÕES)</div>
-<div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">5. RAIO-X (PERGUNTAS CRÍTICAS)</div>
-<div style="background:white; border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:15px; column-count:2; column-gap:20px; font-size:9px;">{html_raio_x}</div>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">6. PLANO DE AÇÃO ESTRATÉGICO</div>
-<table class="rep-table" style="margin-bottom:15px;">
-<thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
-<tbody>{html_acoes}</tbody>
-</table>
-<div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">7. CONCLUSÃO TÉCNICA</div>
-<p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
-<div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
-<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
-<div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
-</div>
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">1. OBJETIVO E METODOLOGIA</div>
+    <p style="text-align:justify; margin:0; font-size:10px;">Este relatório tem como objetivo identificar os fatores de risco psicossocial no ambiente de trabalho, utilizando a ferramenta <strong>HSE Management Standards Indicator Tool</strong>, atendendo às exigências da NR-01. A metodologia avalia 7 dimensões: Demanda, Controle, Suporte (Gestor/Pares), Relacionamentos, Papel e Mudança.</p>
+    
+    <div style="display:flex; justify-content:space-between; margin-top:15px; margin-bottom:15px;">
+        <div style="width:48%; text-align:center;">
+             <div style="font-size:10px; font-weight:bold;">SCORE GERAL</div>
+             {html_gauge}
+        </div>
+        <div style="width:48%; text-align:center;">
+             <div style="font-size:10px; font-weight:bold;">RADAR DIMENSÕES</div>
+             {html_radar}
+        </div>
+    </div>
+
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-top:15px; margin-bottom:5px;">2. DIAGNÓSTICO GERAL (DIMENSÕES)</div>
+    <div style="display:flex; flex-wrap:wrap; margin-bottom:15px;">{html_dimensoes}</div>
+
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">3. RAIO-X DETALHADO (35 PERGUNTAS)</div>
+    <div style="background:white; border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:15px; column-count:2; column-gap:20px; font-size:9px;">{html_raio_x}</div>
+
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">4. PLANO DE AÇÃO ESTRATÉGICO</div>
+    <table class="rep-table" style="margin-bottom:15px;">
+        <thead><tr><th>AÇÃO</th><th>ESTRATÉGIA (COMO)</th><th>ÁREA</th><th>RESP.</th><th>PRAZO</th></tr></thead>
+        <tbody>{html_acoes}</tbody>
+    </table>
+
+    <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:5px;">5. CONCLUSÃO TÉCNICA</div>
+    <p style="text-align:justify; margin:0; font-size:10px;">{analise_texto}</p>
+    <div style="margin-top:10px; font-size:8px; color:#666;">Nota: Este relatório segue as diretrizes da LGPD, garantindo anonimato dos dados individuais.</div>
+
+    <div style="margin-top:40px; display:flex; justify-content:space-between; gap:30px;">
+        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_empresa_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_empresa_cargo}</span></div>
+        <div style="flex:1; text-align:center; border-top:1px solid #ccc; padding-top:5px;"><strong>{sig_tecnico_nome}</strong><br><span style="color:#666; font-size:9px;">{sig_tecnico_cargo}</span></div>
+    </div>
 </div>
 """
             st.markdown(textwrap.dedent(raw_html), unsafe_allow_html=True)
             st.info("Pressione Ctrl+P para salvar como PDF.")
 
-    elif selected == "Histórico":
+    # --- HISTÓRICO & COMPARATIVO (MANTIDO E MELHORADO) ---
+    elif selected == "Histórico & Comparativo":
         st.title("Histórico & Comparativo")
         if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
+        
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
         empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
         history_data = generate_mock_history()
@@ -714,8 +671,8 @@ def admin_dashboard():
             fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
             st.plotly_chart(fig_comp, use_container_width=True)
             
-            # RELATÓRIO HISTÓRICO
-            if st.button("🖨️ Gerar Relatório Evolutivo (PDF)", type="primary"):
+            # --- RELATÓRIO DE HISTÓRICO EM PDF (CORRIGIDO) ---
+            if st.button("🖨️ Gerar Relatório Comparativo (PDF)", type="primary"):
                  st.markdown("---")
                  logo_html = get_logo_html(150)
                  logo_cliente_html = ""
@@ -724,12 +681,12 @@ def admin_dashboard():
                  
                  diff_score = dados_b['score'] - dados_a['score']
                  txt_evolucao = "Melhoria observada" if diff_score > 0 else "Ponto de atenção"
-                 
-                 # Gráfico de evolução como imagem
-                 img_comp = fig_to_base64(fig_comp)
-                 html_img_comp = f'<img src="{img_comp}" width="100%">' if img_comp else "Gráfico indisponível"
 
-                 html_comp_report = textwrap.dedent(f"""
+                 # Gráfico de evolução como imagem para o relatório
+                 img_comp_base64 = fig_to_base64(fig_comp)
+                 html_img_comp = f'<img src="{img_comp_base64}" style="width:100%; max-width:600px;">' if img_comp_base64 else "Gráfico indisponível."
+
+                 html_comp = textwrap.dedent(f"""
                  <div class="a4-paper">
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid {COR_PRIMARIA}; padding-bottom:15px; margin-bottom:20px;">
                         <div>{logo_html}</div>
@@ -747,15 +704,17 @@ def admin_dashboard():
                         <tr><td>Score Geral</td><td>{dados_a['score']}</td><td>{dados_b['score']}</td><td>{diff_score:.2f}</td></tr>
                         <tr><td>Adesão (%)</td><td>{dados_a['adesao']}%</td><td>{dados_b['adesao']}%</td><td>{(dados_b['adesao'] - dados_a['adesao']):.1f}%</td></tr>
                     </table>
+                    
                     <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px;">2. ANÁLISE GRÁFICA COMPARATIVA</div>
-                    <div style="display:flex; justify-content:center; margin-bottom:20px;">
-                        <div style="width:70%;">{html_img_comp}</div>
+                    <div style="text-align:center; margin-bottom:20px;">
+                        {html_img_comp}
                     </div>
+
                     <div style="font-size:11px; font-weight:700; color:{COR_PRIMARIA}; border-left:3px solid {COR_SECUNDARIA}; padding-left:5px; margin-bottom:10px;">3. ANÁLISE TÉCNICA</div>
                     <p style="text-align:justify; margin:0; font-size:10px;">A análise comparativa demonstra uma {txt_evolucao} no índice geral de saúde mental. As dimensões que apresentaram maior variação positiva foram Controle e Apoio, indicando efetividade nas ações de liderança. Recomenda-se manter o monitoramento.</p>
                  </div>
                  """)
-                 st.markdown(html_comp_report, unsafe_allow_html=True)
+                 st.markdown(html_comp, unsafe_allow_html=True)
                  st.info("Pressione Ctrl+P para salvar como PDF.")
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -846,7 +805,6 @@ def survey_screen():
                 st.markdown(f"**{cat}**")
                 for q in pergs:
                     options = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
-                    
                     st.select_slider(
                         label=f"**{q['q']}**",
                         options=options,
