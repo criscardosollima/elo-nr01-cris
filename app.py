@@ -51,13 +51,16 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    .block-container {{ padding-top: 1rem; padding-bottom: 3rem; }}
+    
+    /* CORREÇÃO DA LOGO CORTADA: Aumenta o espaço no topo da página */
+    .block-container {{ padding-top: 3.5rem; padding-bottom: 3rem; }}
+    
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
     /* Cards KPI (Altura automática para não cortar) */
     .kpi-card {{
         background: white; padding: 20px; border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
         margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; 
         min-height: 120px; height: auto;
     }}
@@ -78,7 +81,7 @@ st.markdown(f"""
     /* Caixa de Segurança */
     .security-alert {{
         padding: 1rem; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc;
-        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1rem; font-family: 'Inter', sans-serif;
+        border-left: 5px solid #0f5132; border-radius: 0.25rem; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;
     }}
     
     /* Relatório A4 */
@@ -93,7 +96,7 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider para parecer régua */
+    /* Ajuste Slider para parecer régua (Bolinhas) */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
     div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
 
@@ -252,7 +255,6 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # BANCO DE AÇÕES COMPLETO (50+ OPÇÕES)
     # 1. DEMANDAS
     if dimensoes.get("Demandas", 5) < 3.8:
         sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
@@ -574,7 +576,7 @@ def admin_dashboard():
             fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
             st.plotly_chart(fig_comp, use_container_width=True)
             
-            # --- RELATÓRIO DE HISTÓRICO EM PDF (NOVIDADE) ---
+            # --- RELATÓRIO DE HISTÓRICO EM PDF (CORRIGIDO) ---
             if st.button("🖨️ Gerar Relatório Comparativo (PDF)", type="primary"):
                  st.markdown("---")
                  logo_html = get_logo_html(150)
@@ -771,9 +773,11 @@ def survey_screen():
         st.error("Link inválido."); return
 
     comp = st.session_state.current_company
-    logo_show = get_logo_html(150)
+    # LOGICA DE LOGO: Se tiver logo do cliente, usa. Senão, usa da plataforma.
     if comp.get('logo_b64'):
-        logo_show = f"<img src='data:image/png;base64,{comp.get('logo_b64')}' width='150'>"
+        logo_show = f"<img src='data:image/png;base64,{comp.get('logo_b64')}' width='180'>"
+    else:
+        logo_show = get_logo_html(180)
     
     st.markdown(f"<div style='text-align:center; margin-bottom:20px;'>{logo_show}</div>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center'>Avaliação de Riscos - {comp['razao']}</h3>", unsafe_allow_html=True)
@@ -784,6 +788,7 @@ def survey_screen():
         c1, c2 = st.columns(2)
         cpf = c1.text_input("CPF (Apenas números)", max_chars=11)
         
+        # CARREGAMENTO INTELIGENTE DE OPÇÕES
         lista_setores = comp.get('setores_lista', ["Geral"])
         if isinstance(lista_setores, str): lista_setores = ["Geral"] # Fallback se vier string
 
