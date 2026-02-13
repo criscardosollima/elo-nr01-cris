@@ -42,36 +42,32 @@ COR_FUNDO = "#f4f6f9"
 COR_RISCO_ALTO = "#ef5350"
 COR_RISCO_MEDIO = "#ffa726"
 COR_RISCO_BAIXO = "#66bb6a"
+COR_COMP_A = "#3498db" # Cor período A
+COR_COMP_B = "#9b59b6" # Cor período B
 
-# --- 2. CSS OTIMIZADO (CORREÇÃO DE LAYOUT) ---
+# --- 2. CSS OTIMIZADO ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ background-color: {COR_FUNDO}; font-family: 'Inter', sans-serif; }}
-    
-    /* Aumentei o padding do topo para a logo não ser cortada */
-    .block-container {{ padding-top: 3rem; padding-bottom: 3rem; }}
-    
+    .block-container {{ padding-top: 1rem; padding-bottom: 2rem; }}
     [data-testid="stSidebar"] {{ background-color: #ffffff; border-right: 1px solid #e0e0e0; }}
     
-    /* Cards KPI (Corrigido: Altura Automática) */
+    /* Cards KPI */
     .kpi-card {{
-        background: white; 
-        padding: 20px; 
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.04); 
-        border: 1px solid #f0f0f0;
-        margin-bottom: 15px; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: space-between; 
-        min-height: 140px; /* Garante tamanho mínimo */
-        height: auto;      /* Cresce se precisar */
+        background: white; padding: 20px; border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
+        margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; height: 140px;
     }}
+    .kpi-title {{ font-size: 12px; color: #7f8c8d; font-weight: 600; margin-top: 8px; text-transform: uppercase; }}
+    .kpi-value {{ font-size: 26px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 0px; }}
     .kpi-icon-box {{ width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }}
-    .kpi-title {{ font-size: 13px; color: #7f8c8d; font-weight: 600; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; }}
-    .kpi-value {{ font-size: 32px; font-weight: 700; color: {COR_PRIMARIA}; margin-top: 5px; }}
+    
+    /* Comparativo Delta */
+    .delta-pos {{ color: {COR_RISCO_BAIXO}; font-weight: bold; font-size: 0.9em; }}
+    .delta-neg {{ color: {COR_RISCO_ALTO}; font-weight: bold; font-size: 0.9em; }}
+    .delta-neu {{ color: #999; font-weight: bold; font-size: 0.9em; }}
     
     /* Cores Ícones */
     .bg-blue {{ background-color: #e3f2fd; color: #1976d2; }}
@@ -100,16 +96,8 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider para parecer régua */
     div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
-    div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 500; }}
-    
-    /* Correção de Logo no Formulário */
-    .logo-container img {{
-        max-width: 100%;
-        height: auto;
-        margin-bottom: 15px;
-    }}
+    div[data-testid="stSlider"] label {{ font-weight: bold; color: {COR_PRIMARIA}; }}
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -199,32 +187,59 @@ if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 if 'edit_id' not in st.session_state: st.session_state.edit_id = None
 
 # --- 4. FUNÇÕES AUXILIARES ---
+def generate_mock_history():
+    """Gera dados históricos fictícios para a empresa IND01"""
+    # Se já tiver histórico real, não faz nada (em um cenário real)
+    # Aqui vamos forçar para demonstração
+    history = [
+        {"periodo": "Jan/2025", "score": 2.8, "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0}},
+        {"periodo": "Jul/2024", "score": 2.4, "dimensoes": {"Demandas": 1.8, "Controle": 3.0, "Suporte Gestor": 2.2, "Suporte Pares": 3.8, "Relacionamentos": 2.5, "Papel": 4.0, "Mudança": 2.8}},
+        {"periodo": "Jan/2024", "score": 3.1, "dimensoes": {"Demandas": 3.0, "Controle": 3.5, "Suporte Gestor": 3.0, "Suporte Pares": 3.5, "Relacionamentos": 3.2, "Papel": 3.5, "Mudança": 3.0}}
+    ]
+    return history
+
 def load_data_from_db():
+    # Retorna tupla: (lista_empresas, lista_respostas)
     if DB_CONNECTED:
         try:
             resp_comp = supabase.table('companies').select("*").execute()
             companies = resp_comp.data
+            
+            # Removemos a busca por 'cargo'
             resp_answers = supabase.table('responses').select("company_id, setor, answers").execute()
             all_answers = resp_answers.data 
+            
+            # Processa empresas
             for comp in companies:
                 comp_resps = [a for a in all_answers if a['company_id'] == comp['id']]
                 comp['respondidas'] = len(comp_resps)
+                
+                # Simula score para visualização se não tiver cálculo real implementado
                 if comp['respondidas'] > 0:
                     comp['score'] = round(3.5 + (random.random() * 1.5), 1)
                     comp['dimensoes'] = {"Demandas": 3.0, "Controle": 4.0, "Suporte Gestor": 3.5, "Suporte Pares": 4.5, "Relacionamentos": 3.8, "Papel": 4.2, "Mudança": 3.2}
                 else:
                     comp['score'] = 0
                     comp['dimensoes'] = {"Demandas": 0, "Controle": 0, "Suporte Gestor": 0, "Suporte Pares": 0, "Relacionamentos": 0, "Papel": 0, "Mudança": 0}
+                
+                # Garante campos
                 comp['detalhe_perguntas'] = comp.get('detalhe_perguntas', {})
                 if 'setores_lista' not in comp or not comp['setores_lista']: comp['setores_lista'] = ["Geral"]
+                if 'cargos_lista' not in comp or not comp['cargos_lista']: comp['cargos_lista'] = ["Geral"]
+                
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
-        # Mock responses
+        # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
+             # Gerar respostas fictícias para o dashboard funcionar localmente
              for _ in range(c['respondidas']):
-                 mock_responses.append({"company_id": c['id'], "setor": random.choice(c.get('setores_lista', ['Geral'])), "score_simulado": random.uniform(2.0, 5.0) })
+                 mock_responses.append({
+                     "company_id": c['id'],
+                     "setor": random.choice(c.get('setores_lista', ['Geral'])),
+                     "score_simulado": random.uniform(2.0, 5.0) 
+                 })
         return st.session_state.companies_db, mock_responses
 
 def get_logo_html(width=180):
@@ -250,7 +265,7 @@ def gerar_analise_robusta(dimensoes):
     riscos = [k for k, v in dimensoes.items() if v < 3.0 and v > 0]
     texto = "Com base na metodologia HSE Management Standards Indicator Tool, a avaliação diagnóstica foi realizada considerando os pilares fundamentais de saúde ocupacional. "
     if riscos:
-        texto += f"A análise quantitativa evidenciou que as dimensões **{', '.join(riscos)}** encontram-se em zona de risco crítico (Score < 3.0). Estes fatores, quando negligenciados, estão estatisticamente correlacionados ao aumento de estresse, absenteísmo e turnover. "
+        texto += f"A análise quantitativa evidenciou que as dimensões **{', '.join(riscos)}** encontram-se em zona de risco crítico (Score < 3.0). Estes fatores, quando negligenciados, estão estatisticamente correlacionados ao aumento de estresse, absenteísmo e turnover. A percepção dos colaboradores nestes pontos indica a necessidade de revisão estrutural e comportamental."
     else:
         texto += "A análise indica um ambiente de trabalho equilibrado, com fatores de proteção atuantes. As dimensões avaliadas encontram-se dentro dos parâmetros aceitáveis de saúde mental, sugerindo boas práticas de gestão."
     texto += " Recomenda-se a implementação imediata do plano de ação estipulado para mitigar riscos e fortalecer a cultura de segurança psicossocial."
@@ -323,7 +338,8 @@ def admin_dashboard():
     companies_data, responses_data = load_data_from_db()
     with st.sidebar:
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
-        selected = option_menu(menu_title=None, options=["Visão Geral", "Empresas", "Gestão de Setores", "Gerar Link", "Relatórios", "Configurações"], icons=["grid", "building", "list-task", "link-45deg", "file-text", "gear"], default_index=0, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
+        # Menu atualizado com "Histórico & Comparativo"
+        selected = option_menu(menu_title=None, options=["Visão Geral", "Empresas", "Setores & Cargos", "Gerar Link", "Relatórios", "Histórico & Comparativo", "Configurações"], icons=["grid", "building", "list-task", "link-45deg", "file-text", "clock-history", "gear"], default_index=0, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
         st.markdown("---"); 
         if st.button("Sair", use_container_width=True): logout()
 
@@ -365,7 +381,8 @@ def admin_dashboard():
                 fig_radar.add_trace(go.Scatterpolar(r=valores_radar, theta=categories, fill='toself', name='Média', line_color=COR_SECUNDARIA))
                 fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
                 st.plotly_chart(fig_radar, use_container_width=True)
-            else: st.info("Sem dados para exibir.")
+            else:
+                st.info("Sem dados para exibir.")
             st.markdown("</div>", unsafe_allow_html=True)
             
         with c2:
@@ -512,6 +529,77 @@ def admin_dashboard():
             texto_convite = f"""*Pesquisa de Clima - {empresa['razao']}* 🌟\n\nOlá equipe! A **Pessin Gestão** iniciou o programa *Elo NR-01* para cuidar do que temos de mais valioso: **nós mesmos**.\n\n🛡️ **É seguro?** Sim! A pesquisa é 100% anônima.\n🔒 **É rápido?** Leva menos de 5 minutos.\n\n👇 **Clique no link para responder:**\n{link_final}\n\nContamos com você!"""
             st.text_area("Mensagem WhatsApp:", value=texto_convite, height=200)
             st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- NOVO MÓDULO: HISTÓRICO & COMPARATIVO ---
+    elif selected == "Histórico & Comparativo":
+        st.title("Histórico & Comparativo")
+        if not st.session_state.companies_db: st.warning("Cadastre empresas."); return
+        
+        empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in st.session_state.companies_db])
+        empresa = next(c for c in st.session_state.companies_db if c['razao'] == empresa_nome)
+        
+        # 1. Obter Histórico (Mockado ou Real)
+        history_data = generate_mock_history() # Em produção, buscaria por data de resposta no DB
+        st.info("ℹ️ Exibindo dados de simulação histórica para demonstração.")
+
+        tab_evo, tab_comp = st.tabs(["📈 Evolução Temporal", "⚖️ Comparativo Direto (De/Para)"])
+        
+        with tab_evo:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.markdown("##### Evolução do Score Geral de Saúde Mental")
+            
+            # Preparar dados para o gráfico de linha
+            df_hist = pd.DataFrame(history_data)
+            fig_line = px.line(df_hist, x='periodo', y='score', markers=True, 
+                               title=f"Evolução - {empresa['razao']}",
+                               labels={'score': 'Score Médio (1-5)', 'periodo': 'Ciclo de Avaliação'})
+            fig_line.update_traces(line_color=COR_SECUNDARIA, line_width=3)
+            fig_line.update_yaxes(range=[0, 5])
+            st.plotly_chart(fig_line, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with tab_comp:
+            c1, c2 = st.columns(2)
+            periodo_a = c1.selectbox("Período A (Base)", [h['periodo'] for h in history_data], index=1)
+            periodo_b = c2.selectbox("Período B (Atual)", [h['periodo'] for h in history_data], index=0)
+            
+            # Pega os dados dos períodos selecionados
+            dados_a = next(h for h in history_data if h['periodo'] == periodo_a)
+            dados_b = next(h for h in history_data if h['periodo'] == periodo_b)
+            
+            st.markdown("---")
+            
+            # Cards de Delta
+            col_d1, col_d2, col_d3 = st.columns(3)
+            diff_score = dados_b['score'] - dados_a['score']
+            delta_cls = "delta-pos" if diff_score > 0 else "delta-neg"
+            col_d1.metric("Score Geral", f"{dados_b['score']}", f"{diff_score:.2f}", delta_color="normal")
+            
+            # Comparativo Radar
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.markdown("##### Comparativo Dimensional")
+            
+            categories = list(dados_a['dimensoes'].keys())
+            
+            fig_comp = go.Figure()
+            fig_comp.add_trace(go.Scatterpolar(r=list(dados_a['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_a}', line_color=COR_COMP_A, opacity=0.5))
+            fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
+            
+            fig_comp.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=400)
+            st.plotly_chart(fig_comp, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Análise Textual Automática da Evolução
+            st.markdown("##### 🧠 Análise de Evolução")
+            txt_evolucao = ""
+            if diff_score > 0.1:
+                txt_evolucao = f"A empresa apresentou uma **melhora global** de {diff_score:.2f} pontos entre {periodo_a} e {periodo_b}. Isso indica que as ações do plano anterior surtiram efeito positivo."
+            elif diff_score < -0.1:
+                txt_evolucao = f"Atenção: Houve uma **queda** de {abs(diff_score):.2f} pontos no indicador geral. É necessário investigar quais fatores regrediram."
+            else:
+                txt_evolucao = "O cenário manteve-se **estável** entre os períodos avaliados."
+            
+            st.info(txt_evolucao)
 
     elif selected == "Relatórios":
         st.title("Relatórios e Laudos")
