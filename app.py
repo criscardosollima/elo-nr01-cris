@@ -127,8 +127,8 @@ if 'companies_db' not in st.session_state:
             "segmentacao": "GHE", "resp": "Gestor Exemplo", 
             "email": "exemplo@email.com", "telefone": "(11) 99999-9999", "endereco": "Av. Industrial, 1000 - SP",
             "logo_b64": None, "score": 2.8, "respondidas": 15,
-            "owner": "consultor", # Quem criou
-            "limit_evals": 100,   # Cota alocada para esta empresa
+            "owner": "consultor",
+            "limit_evals": 100, 
             "valid_until": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {},
@@ -234,7 +234,6 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
-        # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
              if 'org_structure' not in c: c['org_structure'] = {"Geral": ["Geral"]}
@@ -247,7 +246,7 @@ def load_data_from_db():
 def get_logo_html(width=180):
     if st.session_state.platform_config['logo_b64']:
         return f'<img src="data:image/png;base64,{st.session_state.platform_config["logo_b64"]}" width="{width}">'
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="{width}"><style>.t1 {{ font-family: sans-serif; font-weight: bold; font-size: 45px; fill: {COR_PRIMARIA}; }} .t2 {{ font-family: sans-serif; font-weight: 300; font-size: 45px; fill: {COR_SECUNDARIA}; }}</style><path d="M20,35 L50,35 A15,15 0 0 1 50,65 L20,65 A15,15 0 0 1 20,35 Z" fill="none" stroke="{COR_SECUNDARIA}" stroke-width="8" /><path d="M45,35 L75,35 A15,15 0 0 1 75,65 L45,65 A15,15 0 0 1 45,35 Z" fill="none" stroke="{COR_PRIMARIA}" stroke-width="8" /><text x="100" y="68" class="t1">Elo</text><text x="180" y="68" class="t2">NR-01</text></svg>"""
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="{width}"><style>.t1 {{ font-family: sans-serif; font-weight: bold; font-size: 45px; fill: {COR_PRIMARIA}; }} .t2 {{ font-family: sans-serif; font-weight: 300; font-size: 45px; fill: {COR_SECUNDARIA}; }}</style><path d="M20,35 L50,35 A15,15 0 0 1 50,65 L20,65 A15,15 0 0 1 20,35 Z" fill="none" stroke="{COR_SECUNDARIA}" stroke-width="8" /><path d="M45,35 L75,35 A15,15 0 0 1 75,65 L45,65 A15,15 0 0 1 45,35 Z" fill="none" stroke="{COR_PRIMARIA}" stroke-width="8" /><text x="100" y="68" class="t1">Elo</text><text x="180" y="68" class="t2">NR-01</text></svg>"""
     b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
     return f'<img src="data:image/svg+xml;base64,{b64}">'
 
@@ -283,15 +282,13 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 60+ AÇÕES HSE
+    # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
         sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
+        sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
         sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h.", "area": "Demandas"})
-        sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
-        sugestoes.append({"acao": "Contratação Sazonal", "estrat": "Recursos extras em picos.", "area": "Demandas"})
-        sugestoes.append({"acao": "Automação", "estrat": "Automatizar tarefas repetitivas.", "area": "Demandas"})
     if dimensoes.get("Controle", 5) < 3.8:
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
         sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
@@ -306,10 +303,8 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
-        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
     
@@ -324,7 +319,7 @@ def gerar_banco_sugestoes(dimensoes):
 def login_screen():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown(f"<div style='text-align:center'>{get_logo_html(250)}</div>", unsafe_allow_html=True)
         plat_name = st.session_state.platform_config['name']
         st.markdown(f"<h3 style='text-align:center; color:#555;'>{plat_name}</h3>", unsafe_allow_html=True)
@@ -359,7 +354,6 @@ def login_screen():
                     linked_comp = user_data.get('linked_company_id')
                 
                 if login_ok:
-                    # Verifica Validade do Contrato
                     valid_until = user_data.get('valid_until')
                     if valid_until and datetime.datetime.today().isoformat() > valid_until:
                         st.error("🚫 O acesso deste usuário expirou.")
@@ -380,8 +374,7 @@ def admin_dashboard():
     perm = st.session_state.admin_permission
     curr_user = st.session_state.user_username
     
-    # FILTRO DE VISIBILIDADE DE EMPRESAS (HIERARQUIA)
-    visible_companies = companies_data
+    # Filtra empresas do usuário se não for Master
     if perm == "Gestor":
         # Gestor vê apenas empresas que ele é dono (owner)
         visible_companies = [c for c in companies_data if c.get('owner') == curr_user]
@@ -389,9 +382,8 @@ def admin_dashboard():
         # Analista vê apenas a empresa vinculada a ele
         linked_id = st.session_state.user_linked_company
         visible_companies = [c for c in companies_data if c['id'] == linked_id]
-        if not visible_companies and linked_id: 
-            # Fallback se não achar ID, mas é improvável se bem configurado
-            st.error("Empresa vinculada não encontrada.")
+    else:
+        visible_companies = companies_data
 
     # Calcula Saldo de Créditos e Uso
     total_used_by_user = 0
@@ -424,7 +416,7 @@ def admin_dashboard():
         
         # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
-            st.info(f"💳 Saldo de Avaliações: {credits_left}")
+            st.info(f"💳 Saldo: {credits_left} avaliações")
 
         selected = option_menu(menu_title=None, options=menu_options, icons=menu_icons, default_index=0, styles={"nav-link-selected": {"background-color": COR_PRIMARIA}})
         st.markdown("---"); 
@@ -512,12 +504,10 @@ def admin_dashboard():
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
-        
         if st.session_state.edit_mode:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.subheader("✏️ Editar Empresa")
             emp_edit = next((c for c in st.session_state.companies_db if c['id'] == st.session_state.edit_id), None)
-            
             if emp_edit:
                 with st.form("edit_form"):
                     c1, c2, c3 = st.columns(3)
@@ -529,10 +519,7 @@ def admin_dashboard():
                     idx_risco = risco_opts.index(emp_edit['risco']) if emp_edit['risco'] in risco_opts else 0
                     new_risco = c4.selectbox("Risco", risco_opts, index=idx_risco)
                     new_func = c5.number_input("Vidas", min_value=1, value=emp_edit['func'])
-                    
-                    # Edição de Cota Específica
                     new_limit = c6.number_input("Cota da Empresa", min_value=1, value=emp_edit.get('limit_evals', 100))
-                    
                     seg_opts = ["GHE", "Setor", "GES"]
                     idx_seg = seg_opts.index(emp_edit['segmentacao']) if emp_edit['segmentacao'] in seg_opts else 0
                     new_seg = c6.selectbox("Segmentação", seg_opts, index=idx_seg)
@@ -541,7 +528,6 @@ def admin_dashboard():
                     new_email = c8.text_input("E-mail Resp.", value=emp_edit.get('email',''))
                     new_tel = c9.text_input("Telefone Resp.", value=emp_edit.get('telefone',''))
                     new_end = st.text_input("Endereço Completo", value=emp_edit.get('endereco',''))
-                    
                     val_atual = datetime.date.today() + datetime.timedelta(days=30)
                     if emp_edit.get('valid_until'):
                         try: val_atual = datetime.date.fromisoformat(emp_edit['valid_until'])
@@ -553,32 +539,27 @@ def admin_dashboard():
                         st.session_state.edit_mode = False; st.session_state.edit_id = None; st.success("Atualizado!"); st.rerun()
                 if st.button("Cancelar"): st.session_state.edit_mode = False; st.rerun()
         else:
-            tab1, tab2 = st.tabs(["Lista", "Nova Cadastro"])
+            tab1, tab2 = st.tabs(["Lista", "Novo Cadastro"])
             with tab1:
-                # LISTA FILTRADA PELA PERMISSÃO
                 for idx, emp in enumerate(visible_companies):
                     with st.expander(f"🏢 {emp['razao']}"):
                         c1, c2, c3, c4 = st.columns(4)
                         c1.write(f"**CNPJ:** {emp['cnpj']}")
                         limit = emp.get('limit_evals', '∞')
                         c2.write(f"**Cota:** {emp['respondidas']}/{limit}")
-                        
                         validity = emp.get('valid_until', '-')
                         try: validity = datetime.date.fromisoformat(validity).strftime('%d/%m/%Y')
                         except: pass
                         c3.write(f"**Vence:** {validity}")
-                        
                         c4_1, c4_2 = c4.columns(2)
                         if c4_1.button("✏️", key=f"ed_{idx}"): 
                              st.session_state.edit_mode = True
                              st.session_state.edit_id = emp['id']
                              st.rerun()
-                        # Master pode excluir
                         if perm == "Master":
                              if c4_2.button("🗑️", key=f"del_{idx}"): st.session_state.companies_db.pop(idx); st.rerun()
 
             with tab2:
-                # CADASTRO COM CRIAÇÃO DE USUÁRIO ANALISTA AUTOMÁTICO
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 with st.form("add_comp"):
                     if credits_left <= 0:
@@ -593,9 +574,7 @@ def admin_dashboard():
                         c4, c5, c6 = st.columns(3)
                         risco = c4.selectbox("Risco", [1,2,3,4])
                         func = c5.number_input("Vidas", min_value=1)
-                        # Validação de cota: não pode ser maior que o saldo do consultor
                         limit_evals = c6.number_input("Cota de Avaliações", min_value=1, max_value=credits_left, value=min(100, credits_left))
-                        
                         c7, c8, c9 = st.columns(3)
                         segmentacao = c7.selectbox("Segmentação", ["GHE", "Setor", "GES"])
                         cod = c8.text_input("ID Acesso (Link)")
@@ -606,30 +585,16 @@ def admin_dashboard():
                         valid_date = c12.date_input("Link Válido Até", value=datetime.date.today() + datetime.timedelta(days=30))
                         end = st.text_input("Endereço Completo")
                         logo_cliente = st.file_uploader("Logo Cliente", type=['png', 'jpg'])
-                        
                         st.markdown("---")
                         st.write("### Criar Acesso da Empresa (Analista)")
-                        st.caption("Defina o login para a empresa acessar os relatórios.")
                         u_login = st.text_input("Usuário de Acesso da Empresa")
                         u_pass = st.text_input("Senha de Acesso", type="password")
-
                         if st.form_submit_button("Cadastrar Empresa e Usuário"):
                             logo_str = image_to_base64(logo_cliente)
-                            
-                            # 1. Cria Empresa
                             new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "limit_evals": limit_evals, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "valid_until": valid_date.isoformat(), "logo_b64": logo_str, "score": 0, "respondidas": 0, "owner": curr_user, "dimensoes": {}, "detalhe_perguntas": {}, "org_structure": {"Geral": ["Geral"]}}
                             st.session_state.companies_db.append(new_c)
-                            
-                            # 2. Cria Usuário Analista
                             if u_login and u_pass:
-                                st.session_state.users_db[u_login] = {
-                                    "password": u_pass, 
-                                    "role": "Analista", 
-                                    "credits": limit_evals, # Cota dela
-                                    "valid_until": valid_date.isoformat(),
-                                    "linked_company_id": cod # Vincula à empresa
-                                }
-                            
+                                st.session_state.users_db[u_login] = {"password": u_pass, "role": "Analista", "credits": limit_evals, "valid_until": valid_date.isoformat(), "linked_company_id": cod}
                             st.success("Empresa e Acesso cadastrados com sucesso!")
                             st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -637,14 +602,11 @@ def admin_dashboard():
     elif selected == "Setores & Cargos":
         st.title("Gestão de Setores e Cargos")
         if not visible_companies: st.warning("Cadastre uma empresa."); return
-        
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
         empresa_idx = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
-        
         if empresa_idx is not None:
             empresa = st.session_state.companies_db[empresa_idx]
             if 'org_structure' not in empresa: empresa['org_structure'] = {"Geral": ["Geral"]}
-            
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
@@ -655,7 +617,6 @@ def admin_dashboard():
                         st.session_state.companies_db[empresa_idx]['org_structure'][new_setor] = []
                         st.success(f"Setor {new_setor} criado!")
                         st.rerun()
-                
                 st.markdown("---")
                 setores_existentes = list(empresa['org_structure'].keys())
                 setor_remover = st.selectbox("Selecione para remover", setores_existentes)
@@ -663,7 +624,6 @@ def admin_dashboard():
                     del st.session_state.companies_db[empresa_idx]['org_structure'][setor_remover]
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
             with c2:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 st.subheader("2. Gerenciar Cargos por Setor")
@@ -690,7 +650,6 @@ def admin_dashboard():
             with c1:
                 st.markdown("##### Link de Acesso")
                 st.markdown(f"<div class='link-box'>{link_final}</div>", unsafe_allow_html=True)
-                
                 limit = empresa.get('limit_evals', 999999)
                 usadas = empresa['respondidas']
                 val = empresa.get('valid_until', '-')
@@ -698,7 +657,6 @@ def admin_dashboard():
                 except: pass
                 st.caption(f"📊 Cota da Empresa: {usadas} / {limit}")
                 st.caption(f"📅 Validade do Contrato: {val}")
-
                 if "localhost" in st.session_state.base_url: st.warning("⚠️ Você está em Localhost. Configure URL real.")
                 if st.button("👁️ Testar (Visão Colaborador)"):
                     st.session_state.current_company = empresa; st.session_state.logged_in = True; st.session_state.user_role = 'colaborador'; st.rerun()
@@ -1013,6 +971,18 @@ def admin_dashboard():
                  st.subheader("Integração Supabase")
                  st.info(f"Status Conexão: {'Conectado ✅' if DB_CONNECTED else 'Offline (Mock) ⚠️'}")
                  st.markdown("</div>", unsafe_allow_html=True)
+            
+            with t3:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
+                nl = st.file_uploader("Logo")
+                if st.button("Salvar ID"):
+                    st.session_state.platform_config['name'] = nn
+                    st.session_state.platform_config['consultancy'] = nc
+                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
         else:
             st.error("Acesso restrito a usuários Master.")
@@ -1033,12 +1003,14 @@ def survey_screen():
     if comp.get('valid_until'):
         try:
             if datetime.date.today() > datetime.date.fromisoformat(comp['valid_until']):
-                st.error("⛔ Este link de avaliação expirou."); return
+                st.error("⛔ Este link de avaliação expirou.")
+                return
         except: pass
         
     limit_evals = comp.get('limit_evals', 999999)
     if comp.get('respondidas', 0) >= limit_evals:
-        st.error("⚠️ O limite de avaliações contratadas para esta empresa foi atingido."); return
+        st.error("⚠️ O limite de avaliações contratadas para esta empresa foi atingido.")
+        return
         
     # Check dono
     owner_id = comp.get('owner')
