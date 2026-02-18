@@ -289,7 +289,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -446,6 +446,7 @@ def admin_dashboard():
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c['func'] for c in companies_filtered)
+        pendentes_view = total_vidas_view - total_resp_view
         
         col1, col2, col3, col4 = st.columns(4)
         if perm == "Analista":
@@ -499,6 +500,7 @@ def admin_dashboard():
                  for c in companies_filtered:
                      if c['respondidas'] >= c['func']: status_dist["Concluído"] += 1
                      else: status_dist["Em Andamento"] += 1
+                 # CORREÇÃO: px.pie
                  fig_pie = px.pie(names=list(status_dist.keys()), values=list(status_dist.values()), hole=0.6, color_discrete_sequence=[COR_SECUNDARIA, COR_RISCO_MEDIO])
                  fig_pie.update_layout(height=250, margin=dict(t=0, b=0, l=0, r=0))
                  st.plotly_chart(fig_pie, use_container_width=True)
@@ -871,7 +873,7 @@ def admin_dashboard():
     elif selected == "Histórico & Comparativo":
         st.title("Histórico")
         if not visible_companies: st.warning("Cadastre empresas."); return
-        empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
+        empresa_nome = st.selectbox("Empresa", [c['razao'] for c in visible_companies])
         empresa = next(c for c in visible_companies if c['razao'] == empresa_nome)
         history_data = generate_mock_history()
         st.info("ℹ️ Exibindo dados históricos.")
@@ -958,71 +960,43 @@ def admin_dashboard():
         if perm == "Master":
             st.title("Configurações")
             t1, t2, t3 = st.tabs(["Usuários", "Sistema", "Identidade"])
-            with t1:
+            with t3:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                # Tabela de Usuários com Botão de Exclusão
-                st.write("### Usuários Cadastrados")
-                
-                # Prepara dados para exibição
-                users_list = []
-                for u, d in st.session_state.users_db.items():
-                    users_list.append({"User": u, "Role": d.get('role'), "Credits": d.get('credits')})
-                
-                st.dataframe(pd.DataFrame(users_list), use_container_width=True)
-
-                st.markdown("---")
-                st.write("#### Adicionar Novo Usuário")
-                c1, c2 = st.columns(2)
-                u_login = c1.text_input("Login")
-                u_pass = c2.text_input("Senha", type="password")
-                
-                c3, c4, c5 = st.columns(3)
-                u_role = c3.selectbox("Perfil", ["Master", "Gestor", "Analista"])
-                u_credits = c4.number_input("Créditos", min_value=0, value=100)
-                u_valid = c5.date_input("Validade", value=datetime.date.today() + datetime.timedelta(days=365))
-                
-                if st.button("Criar Usuário"):
-                    st.session_state.users_db[u_login] = {
-                        "password": u_pass, "role": u_role, 
-                        "credits": u_credits, "valid_until": u_valid.isoformat()
-                    }
-                    st.success("Usuário criado!")
-                    st.rerun()
-
-                st.markdown("---")
-                st.write("#### Excluir Usuário")
-                # Dropdown para excluir (exceto o próprio usuário logado)
-                users_to_del = [u for u in st.session_state.users_db.keys() if u != curr_user]
-                u_del = st.selectbox("Selecione para excluir", users_to_del)
-                
-                if st.button("🗑️ Excluir Selecionado"):
-                    del st.session_state.users_db[u_del]
-                    st.success(f"Usuário {u_del} excluído!")
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            with t2:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                # CAMPO DE URL REAL (CORRIGIDO PARA LER DO STATE)
                 nu = st.text_input("URL Base (Ex: https://meuapp.streamlit.app)", value=st.session_state.platform_config.get('base_url', ''))
                 if st.button("Salvar URL"):
                     st.session_state.platform_config['base_url'] = nu
                     st.success("OK")
                 st.markdown("</div>", unsafe_allow_html=True)
-            
-            with t3:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
-                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
-                nl = st.file_uploader("Logo")
-                if st.button("Salvar ID"):
-                    st.session_state.platform_config['name'] = nn
-                    st.session_state.platform_config['consultancy'] = nc
-                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+            with t1:
+                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                 st.write("Gestão de Usuários")
+                 users_list = []
+                 for u, d in st.session_state.users_db.items():
+                     users_list.append({"User": u, "Role": d.get('role')})
+                 st.dataframe(pd.DataFrame(users_list), use_container_width=True)
+                 
+                 c1, c2 = st.columns(2)
+                 nu = c1.text_input("Novo Usuário")
+                 np = c2.text_input("Senha", type="password")
+                 nr = st.selectbox("Perfil", ["Master", "Gestor", "Analista"])
+                 if st.button("Adicionar"):
+                     st.session_state.users_db[nu] = {"password": np, "role": nr}
+                     st.success("Criado!")
+                     st.rerun()
+                 
+                 # Exclusão
+                 st.markdown("---")
+                 u_del = st.selectbox("Excluir Usuário", [u for u in st.session_state.users_db.keys() if u != curr_user])
+                 if st.button("🗑️ Excluir"):
+                     del st.session_state.users_db[u_del]
+                     st.success("Excluído!")
+                     st.rerun()
+                 st.markdown("</div>", unsafe_allow_html=True)
+            with t2:
+                 st.info(f"Supabase Status: {'Online' if DB_CONNECTED else 'Offline'}")
 
-        else:
-            st.error("Acesso restrito a usuários Master.")
+        else: st.error("Acesso restrito.")
 
 # --- 6. TELA PESQUISA ---
 def survey_screen():
@@ -1040,13 +1014,13 @@ def survey_screen():
     if comp.get('valid_until'):
         try:
             if datetime.date.today() > datetime.date.fromisoformat(comp['valid_until']):
-                st.error("⛔ Este link de avaliação expirou.")
+                st.error("⛔ Link expirado.")
                 return
         except: pass
         
     limit_evals = comp.get('limit_evals', 999999)
     if comp.get('respondidas', 0) >= limit_evals:
-        st.error("⚠️ O limite de avaliações contratadas para esta empresa foi atingido.")
+        st.error("⚠️ Limite de avaliações atingido.")
         return
     
     logo = get_logo_html(150)
@@ -1066,7 +1040,8 @@ def survey_screen():
         
         # 2. Carrega Cargos do Setor Selecionado
         cargos = comp['org_structure'][setor]
-        cargo = c3.selectbox("Cargo", cargos)
+        # CARGO OCULTO NO FORMULARIO VISUAL, MAS INTERNO (OU REMOVIDO SE PREFERIR)
+        # cargo = c3.selectbox("Cargo", cargos) # REMOVIDO PARA COLABORADOR
         
         st.markdown("---")
         tabs = st.tabs(list(st.session_state.hse_questions.keys()))
@@ -1074,15 +1049,25 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    opts = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo", "Neutro", "Concordo"]
-                    st.select_slider(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", help=q['help'])
-                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+                    # Inicia VAZIO para obrigar resposta
+                    opts = [None, "Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else [None, "Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
+                    # Selectbox ao invés de slider para forçar escolha (slider sempre tem valor default)
+                    st.selectbox(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", help=q['help'], format_func=lambda x: "Selecione..." if x is None else x)
+                    st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
 
         aceite = st.checkbox("Declaro que li e concordo com o tratamento dos meus dados para fins estatísticos de saúde ocupacional, garantido o sigilo individual.")
         
         if st.form_submit_button("✅ Enviar Respostas"):
+             # Validação de TODAS as perguntas
+             missing = []
+             for cat, pergs in st.session_state.hse_questions.items():
+                 for q in pergs:
+                     if st.session_state.get(f"q_{q['id']}") is None:
+                         missing.append(q['q'])
+             
              if not cpf: st.error("⚠️ O CPF é obrigatório.")
              elif not aceite: st.error("⚠️ Aceite obrigatório.")
+             elif missing: st.error(f"⚠️ Você precisa responder todas as perguntas. Faltam: {len(missing)}")
              else:
                  st.success("Sucesso!"); st.balloons()
                  comp['respondidas'] += 1 # Mock update
