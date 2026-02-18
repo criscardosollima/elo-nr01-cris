@@ -50,8 +50,9 @@ COR_COMP_A = "#3498db"
 COR_COMP_B = "#9b59b6"
 
 # ==============================================================================
-# 2. CSS OTIMIZADO
+# 2. CSS OTIMIZADO (CORRIGIDO)
 # ==============================================================================
+# Nota Técnica: Em f-strings do Python, chaves do CSS devem ser duplas {{ }}
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -99,16 +100,25 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Radio Button Horizontal - UX Melhorada */
-    div[role="radiogroup"] > label {
-        font-weight: 500; color: #444; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee;
-        cursor: pointer; transition: all 0.3s;
-    }
-    div[role="radiogroup"] > label:hover { background: #e2e6ea; }
-    div[data-testid="stRadio"] > div {
-        flex-direction: row; /* Força horizontal */
-        gap: 10px; overflow-x: auto;
-    }
+    /* Ajuste Radio Button Horizontal (CORRIGIDO) */
+    div[role="radiogroup"] > label {{
+        font-weight: 500; 
+        color: #444; 
+        background: #f8f9fa; 
+        padding: 5px 15px; 
+        border-radius: 20px; 
+        border: 1px solid #eee;
+        cursor: pointer; 
+        transition: all 0.3s;
+    }}
+    div[role="radiogroup"] > label:hover {{ 
+        background: #e2e6ea; 
+    }}
+    div[data-testid="stRadio"] > div {{
+        flex-direction: row; 
+        gap: 10px; 
+        overflow-x: auto;
+    }}
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -245,6 +255,7 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
+        # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
              if 'org_structure' not in c: c['org_structure'] = {"Geral": ["Geral"]}
@@ -317,8 +328,10 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
+        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
+        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
     
@@ -347,6 +360,7 @@ def login_screen():
                 user_credits = 0
                 linked_comp = None
                 
+                # Tenta DB
                 if DB_CONNECTED:
                     try:
                         res = supabase.table('admin_users').select("*").eq('username', user).eq('password', pwd).execute()
@@ -358,6 +372,7 @@ def login_screen():
                             linked_comp = user_data.get('linked_company_id')
                     except: pass
                 
+                # Tenta Local
                 if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user].get('password') == pwd:
                     login_ok = True
                     user_data = st.session_state.users_db[user]
@@ -424,6 +439,7 @@ def admin_dashboard():
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         st.caption(f"Usuário: **{curr_user}** | Perfil: **{perm}**")
         
+        # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
             st.info(f"💳 Saldo: {credits_left} avaliações")
 
@@ -449,6 +465,7 @@ def admin_dashboard():
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c['func'] for c in companies_filtered)
+        pendentes_view = total_vidas_view - total_resp_view
         
         col1, col2, col3, col4 = st.columns(4)
         if perm == "Analista":
@@ -723,12 +740,12 @@ def admin_dashboard():
         analise_auto = gerar_analise_robusta(dimensoes_atuais)
         sugestoes_auto = gerar_banco_sugestoes(dimensoes_atuais)
         
-        # --- DEFINIÇÃO DA VARIÁVEL HTML_ACT ANTES DO USO ---
+        # --- DEFINIÇÃO PRÉVIA DA VARIÁVEL HTML_ACT PARA EVITAR ERRO ---
+        html_act = ""
         if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
         if not st.session_state.acoes_list:
             for s in sugestoes_auto[:3]: st.session_state.acoes_list.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
         
-        html_act = ""
         if st.session_state.acoes_list:
             for item in st.session_state.acoes_list:
                 html_act += f"<tr><td>{item.get('acao','')}</td><td>{item.get('estrat','')}</td><td>{item.get('area','')}</td><td>{item.get('resp','')}</td><td>{item.get('prazo','')}</td></tr>"
@@ -771,7 +788,6 @@ def admin_dashboard():
 
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante que exibe todas as 35 perguntas
             for cat, pergs in st.session_state.hse_questions.items():
                  html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee; font-family:sans-serif;">{cat}</div>'
                  for q in pergs:
@@ -1066,9 +1082,16 @@ def survey_screen():
         aceite = st.checkbox("Declaro que li e concordo com o tratamento dos meus dados para fins estatísticos de saúde ocupacional, garantido o sigilo individual.")
         
         if st.form_submit_button("✅ Enviar Respostas"):
+             # Validação rigorosa de TODAS as perguntas
+             missing = []
+             for cat, pergs in st.session_state.hse_questions.items():
+                 for q in pergs:
+                     if st.session_state.get(f"q_{q['id']}") is None:
+                         missing.append(q['q'])
+             
              if not cpf: st.error("⚠️ O CPF é obrigatório.")
              elif not aceite: st.error("⚠️ Aceite obrigatório.")
-             elif missing: st.error("⚠️ Você precisa responder todas as perguntas.")
+             elif missing: st.error(f"⚠️ Você precisa responder todas as perguntas. Faltam: {len(missing)}")
              else:
                  st.success("Sucesso!"); st.balloons()
                  comp['respondidas'] += 1 # Mock update
