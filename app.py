@@ -50,9 +50,8 @@ COR_COMP_A = "#3498db"
 COR_COMP_B = "#9b59b6"
 
 # ==============================================================================
-# 2. CSS OTIMIZADO (CORRIGIDO PARA F-STRINGS)
+# 2. CSS OTIMIZADO
 # ==============================================================================
-# IMPORTANTE: Chaves de CSS duplicadas {{ }} para evitar conflito com Python
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -100,24 +99,14 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Radio Button Horizontal - UX Melhorada */
+    /* Ajuste Radio Button Horizontal */
     div[role="radiogroup"] > label {{
-        font-weight: 500; 
-        color: #444; 
-        background: #f8f9fa; 
-        padding: 5px 15px; 
-        border-radius: 20px; 
-        border: 1px solid #eee;
-        cursor: pointer; 
-        transition: all 0.3s;
+        font-weight: 500; color: #444; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee;
+        cursor: pointer; transition: all 0.3s;
     }}
-    div[role="radiogroup"] > label:hover {{ 
-        background: #e2e6ea; 
-    }}
+    div[role="radiogroup"] > label:hover {{ background: #e2e6ea; }}
     div[data-testid="stRadio"] > div {{
-        flex-direction: row; 
-        gap: 10px; 
-        overflow-x: auto;
+        flex-direction: row; gap: 10px; overflow-x: auto;
     }}
 
     @media print {{
@@ -129,8 +118,16 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. DADOS
+# 3. DADOS E INICIALIZAÇÃO DE VARIÁVEIS (CRÍTICO)
 # ==============================================================================
+# Garante que as variáveis de sessão existam
+keys = ['logged_in', 'user_role', 'admin_permission', 'user_username', 'user_credits', 'user_linked_company', 'edit_mode', 'edit_id', 'acoes_list']
+for k in keys:
+    if k not in st.session_state: st.session_state[k] = None
+if st.session_state.acoes_list is None: st.session_state.acoes_list = []
+if st.session_state.user_credits is None: st.session_state.user_credits = 0
+
+# --- MOCK DATA (PARA O SISTEMA NÃO INICIAR ZERADO) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "admin": {"password": "admin", "role": "Master", "credits": 99999, "valid_until": "2099-12-31"},
@@ -138,6 +135,7 @@ if 'users_db' not in st.session_state:
     }
 
 if 'companies_db' not in st.session_state:
+    # Cria uma empresa padrão populada para evitar painel vazio
     st.session_state.companies_db = [
         {
             "id": "IND01", "razao": "Indústria Têxtil Fabril (Exemplo)", "cnpj": "00.000.000/0001-00", 
@@ -150,7 +148,7 @@ if 'companies_db' not in st.session_state:
             "valid_until": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {
-                 "Prazos impossíveis de cumprir?": 65, "Pressão para trabalhar longas horas?": 45, "Tenho que trabalhar muito intensamente?": 55
+                 "Tenho prazos impossíveis de cumprir?": 65, "Sou pressionado a trabalhar longas horas?": 45
              },
              "org_structure": {
                  "Administrativo": ["Analista", "Assistente", "Gerente"],
@@ -198,7 +196,7 @@ if 'hse_questions' not in st.session_state:
             {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas."},
             {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Brigas e fofocas."},
             {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Exclusão."},
-            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Clima pesado."}
+            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
         ],
         "Papel": [
             {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Ex: Metas claras."},
@@ -213,17 +211,6 @@ if 'hse_questions' not in st.session_state:
             {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Ex: Comunicação transparente."}
         ]
     }
-
-if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-if 'user_role' not in st.session_state: st.session_state.user_role = None
-if 'admin_permission' not in st.session_state: st.session_state.admin_permission = None
-if 'user_username' not in st.session_state: st.session_state.user_username = None 
-if 'user_credits' not in st.session_state: st.session_state.user_credits = 0
-if 'user_linked_company' not in st.session_state: st.session_state.user_linked_company = None
-if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
-if 'edit_id' not in st.session_state: st.session_state.edit_id = None
-if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def generate_mock_history():
@@ -278,15 +265,11 @@ def image_to_base64(uploaded_file):
     except: pass
     return None
 
-def fig_to_base64(fig):
-    try:
-        img_bytes = fig.to_image(format="png", width=600, height=300)
-        encoded = base64.b64encode(img_bytes).decode()
-        return f"data:image/png;base64,{encoded}"
-    except:
-        return None
-
-def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.session_state.admin_permission = None; st.rerun()
+def logout(): 
+    st.session_state.logged_in = False
+    st.session_state.user_role = None
+    st.session_state.admin_permission = None
+    st.rerun()
 
 def kpi_card(title, value, icon, color_class):
     st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div><div class="kpi-value">{value}</div></div><div class="kpi-title">{title}</div></div>""", unsafe_allow_html=True)
@@ -464,7 +447,6 @@ def admin_dashboard():
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c['func'] for c in companies_filtered)
-        pendentes_view = total_vidas_view - total_resp_view
         
         col1, col2, col3, col4 = st.columns(4)
         if perm == "Analista":
@@ -1105,4 +1087,4 @@ if not st.session_state.logged_in:
     else: login_screen()
 else:
     if st.session_state.user_role == 'admin': admin_dashboard()
-    else: survey_screen()
+    
