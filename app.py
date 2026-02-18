@@ -289,7 +289,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -311,10 +311,8 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Tolerância Zero", "estrat": "Divulgar Código de Conduta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Workshop CNV", "estrat": "Treinamento de Comunicação Não-Violenta.", "area": "Relacionamentos"})
         sugestoes.append({"acao": "Ouvidoria Externa", "estrat": "Canal anônimo para denúncias.", "area": "Relacionamentos"})
-        sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
-        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
     
@@ -343,6 +341,7 @@ def login_screen():
                 user_credits = 0
                 linked_comp = None
                 
+                # Tenta DB
                 if DB_CONNECTED:
                     try:
                         res = supabase.table('admin_users').select("*").eq('username', user).eq('password', pwd).execute()
@@ -354,6 +353,7 @@ def login_screen():
                             linked_comp = user_data.get('linked_company_id')
                     except: pass
                 
+                # Tenta Local
                 if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user].get('password') == pwd:
                     login_ok = True
                     user_data = st.session_state.users_db[user]
@@ -382,6 +382,7 @@ def admin_dashboard():
     perm = st.session_state.admin_permission
     curr_user = st.session_state.user_username
     
+    # Filtra empresas do usuário se não for Master
     if perm == "Gestor":
         visible_companies = [c for c in companies_data if c.get('owner') == curr_user]
     elif perm == "Analista":
@@ -390,6 +391,7 @@ def admin_dashboard():
     else:
         visible_companies = companies_data
 
+    # Calcula Saldo de Créditos e Uso
     total_used_by_user = 0
     if perm == "Gestor":
         total_used_by_user = sum(c['respondidas'] for c in visible_companies)
@@ -399,6 +401,7 @@ def admin_dashboard():
     credits_total = st.session_state.user_credits
     credits_left = credits_total - total_used_by_user
 
+    # Definição do Menu
     menu_options = ["Visão Geral", "Gerar Link", "Relatórios", "Histórico & Comparativo"]
     if perm in ["Master", "Gestor"]:
         menu_options.insert(1, "Empresas")
@@ -417,6 +420,7 @@ def admin_dashboard():
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         st.caption(f"Usuário: **{curr_user}** | Perfil: **{perm}**")
         
+        # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
             st.info(f"💳 Saldo: {credits_left} avaliações")
 
@@ -426,6 +430,8 @@ def admin_dashboard():
 
     if selected == "Visão Geral":
         st.title("Painel Administrativo")
+        
+        # Filtro Global
         lista_empresas_filtro = ["Todas"] + [c['razao'] for c in visible_companies]
         empresa_filtro = st.selectbox("Filtrar por Empresa", lista_empresas_filtro)
         
@@ -493,7 +499,6 @@ def admin_dashboard():
                  for c in companies_filtered:
                      if c['respondidas'] >= c['func']: status_dist["Concluído"] += 1
                      else: status_dist["Em Andamento"] += 1
-                 # CORREÇÃO: px.pie
                  fig_pie = px.pie(names=list(status_dist.keys()), values=list(status_dist.values()), hole=0.6, color_discrete_sequence=[COR_SECUNDARIA, COR_RISCO_MEDIO])
                  fig_pie.update_layout(height=250, margin=dict(t=0, b=0, l=0, r=0))
                  st.plotly_chart(fig_pie, use_container_width=True)
@@ -927,6 +932,7 @@ def admin_dashboard():
                         <div style="text-align:right;"><div style="font-size:16px; font-weight:700; color:{COR_PRIMARIA};">RELATÓRIO DE EVOLUÇÃO</div><div style="font-size:10px; color:#666;">Comparativo Histórico</div></div>
                     </div>
                     <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border-left:4px solid {COR_SECUNDARIA};">
+                        {logo_cliente_html}
                         <div style="font-size:9px; color:#888;">CLIENTE</div><div style="font-weight:bold; font-size:12px;">{empresa['razao']}</div>
                         <div style="font-size:9px;">CNPJ: {empresa.get('cnpj','')} | Endereço: {empresa.get('endereco','-')}</div>
                         <div style="font-size:9px;">Períodos Comparados: {periodo_a} vs {periodo_b}</div>
@@ -986,7 +992,7 @@ def admin_dashboard():
                 st.markdown("---")
                 st.write("#### Excluir Usuário")
                 # Dropdown para excluir (exceto o próprio usuário logado)
-                users_to_del = [u for u in st.session_state.users_db.keys() if u != st.session_state.user_username] # CORREÇÃO: Usar st.session_state.user_username
+                users_to_del = [u for u in st.session_state.users_db.keys() if u != curr_user]
                 u_del = st.selectbox("Selecione para excluir", users_to_del)
                 
                 if st.button("🗑️ Excluir Selecionado"):
