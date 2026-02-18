@@ -293,8 +293,7 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 60+ AÇÕES HSE
-    # 1. DEMANDAS
+    # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
         sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
@@ -303,14 +302,12 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Pausas Cognitivas", "estrat": "Instituir pausas de 10 min a cada 2h.", "area": "Demandas"})
         sugestoes.append({"acao": "Contratação Sazonal", "estrat": "Recursos extras em picos.", "area": "Demandas"})
         sugestoes.append({"acao": "Automação", "estrat": "Automatizar tarefas repetitivas.", "area": "Demandas"})
-    # 2. CONTROLE
     if dimensoes.get("Controle", 5) < 3.8:
         sugestoes.append({"acao": "Job Crafting", "estrat": "Personalização do método de trabalho.", "area": "Controle"})
         sugestoes.append({"acao": "Banco de Horas", "estrat": "Flexibilidade entrada/saída.", "area": "Controle"})
         sugestoes.append({"acao": "Autonomia Agenda", "estrat": "Autogestão de tarefas não-críticas.", "area": "Controle"})
         sugestoes.append({"acao": "Delegação", "estrat": "Empoderar níveis menores.", "area": "Controle"})
         sugestoes.append({"acao": "Comitês Participativos", "estrat": "Envolver equipe em decisões.", "area": "Controle"})
-    # 3. SUPORTE
     if dimensoes.get("Suporte Gestor", 5) < 3.8 or dimensoes.get("Suporte Pares", 5) < 3.8:
         sugestoes.append({"acao": "Liderança Segura", "estrat": "Capacitação em escuta ativa.", "area": "Suporte"})
         sugestoes.append({"acao": "Mentoria Buddy", "estrat": "Padrinhos para novos colaboradores.", "area": "Suporte"})
@@ -323,8 +320,6 @@ def gerar_banco_sugestoes(dimensoes):
         sugestoes.append({"acao": "Mediação de Conflitos", "estrat": "Grupo para mediação precoce.", "area": "Relacionamentos"})
     if dimensoes.get("Papel", 5) < 3.8:
         sugestoes.append({"acao": "Revisão Job Desc", "estrat": "Clareza de responsabilidades.", "area": "Papel"})
-        sugestoes.append({"acao": "Alinhamento Metas", "estrat": "Revisão semestral de objetivos.", "area": "Papel"})
-        sugestoes.append({"acao": "Onboarding", "estrat": "Reforço no treinamento inicial.", "area": "Papel"})
     if dimensoes.get("Mudança", 5) < 3.8:
         sugestoes.append({"acao": "Comunicação Transparente", "estrat": "Explicar o 'porquê' antes do 'como'.", "area": "Mudança"})
     
@@ -1092,10 +1087,3 @@ def survey_screen():
                  st.success("Sucesso!"); st.balloons()
                  comp['respondidas'] += 1 # Mock update
                  time.sleep(2); st.session_state.logged_in = False; st.rerun()
-
-if not st.session_state.logged_in:
-    if "cod" in st.query_params: survey_screen()
-    else: login_screen()
-else:
-    if st.session_state.user_role == 'admin': admin_dashboard()
-    else: survey_screen()
