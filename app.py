@@ -100,15 +100,15 @@ st.markdown(f"""
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
     /* Ajuste Radio Button Horizontal - UX Melhorada */
-    div[role="radiogroup"] > label {{
+    div[role="radiogroup"] > label {
         font-weight: 500; color: #444; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee;
         cursor: pointer; transition: all 0.3s;
-    }}
-    div[role="radiogroup"] > label:hover {{ background: #e2e6ea; }}
-    div[data-testid="stRadio"] > div {{
+    }
+    div[role="radiogroup"] > label:hover { background: #e2e6ea; }
+    div[data-testid="stRadio"] > div {
         flex-direction: row; /* Força horizontal */
         gap: 10px; overflow-x: auto;
-    }}
+    }
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -245,7 +245,6 @@ def load_data_from_db():
             return companies, all_answers
         except: return st.session_state.companies_db, []
     else:
-        # Mock responses generator
         mock_responses = []
         for c in st.session_state.companies_db:
              if 'org_structure' not in c: c['org_structure'] = {"Geral": ["Geral"]}
@@ -294,7 +293,7 @@ def gerar_analise_robusta(dimensoes):
 
 def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
-    # 50+ AÇÕES HSE
+    # 60+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
         sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
@@ -348,7 +347,6 @@ def login_screen():
                 user_credits = 0
                 linked_comp = None
                 
-                # Tenta DB
                 if DB_CONNECTED:
                     try:
                         res = supabase.table('admin_users').select("*").eq('username', user).eq('password', pwd).execute()
@@ -360,7 +358,6 @@ def login_screen():
                             linked_comp = user_data.get('linked_company_id')
                     except: pass
                 
-                # Tenta Local
                 if not login_ok and user in st.session_state.users_db and st.session_state.users_db[user].get('password') == pwd:
                     login_ok = True
                     user_data = st.session_state.users_db[user]
@@ -427,7 +424,6 @@ def admin_dashboard():
         st.markdown(f"<div style='text-align:center; margin-bottom:30px; margin-top:20px;'>{get_logo_html(160)}</div>", unsafe_allow_html=True)
         st.caption(f"Usuário: **{curr_user}** | Perfil: **{perm}**")
         
-        # Mostra Créditos no Menu para Gestor/Analista
         if perm != "Master":
             st.info(f"💳 Saldo: {credits_left} avaliações")
 
@@ -727,18 +723,18 @@ def admin_dashboard():
         analise_auto = gerar_analise_robusta(dimensoes_atuais)
         sugestoes_auto = gerar_banco_sugestoes(dimensoes_atuais)
         
-        # CORREÇÃO: Inicialização de Variáveis de Controle
+        # --- DEFINIÇÃO DA VARIÁVEL HTML_ACT ANTES DO USO ---
         if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
         if not st.session_state.acoes_list:
             for s in sugestoes_auto[:3]: st.session_state.acoes_list.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
         
-        # INICIALIZAÇÃO DA VARIÁVEL HTML_ACT ANTES DO USO
         html_act = ""
         if st.session_state.acoes_list:
             for item in st.session_state.acoes_list:
                 html_act += f"<tr><td>{item.get('acao','')}</td><td>{item.get('estrat','')}</td><td>{item.get('area','')}</td><td>{item.get('resp','')}</td><td>{item.get('prazo','')}</td></tr>"
         else:
             html_act = "<tr><td colspan='5'>Nenhuma ação selecionada.</td></tr>"
+        # ----------------------------------------------------
 
         with st.expander("📝 Editar Conteúdo Técnico", expanded=True):
             st.markdown("##### 1. Conclusão Técnica")
@@ -766,8 +762,6 @@ def admin_dashboard():
             if empresa.get('logo_b64'):
                 logo_cliente_html = f"<img src='data:image/png;base64,{empresa.get('logo_b64')}' width='100' style='float:right;'>"
             
-            # --- CONSTRUÇÃO DO HTML VISUAL ---
-            # Cards de Dimensões
             html_dimensoes = ""
             if empresa.get('dimensoes'):
                 for dim, nota in empresa.get('dimensoes', {}).items():
@@ -775,10 +769,9 @@ def admin_dashboard():
                     txt = "CRÍTICO" if nota < 3 else ("ATENÇÃO" if nota < 4 else "SEGURO")
                     html_dimensoes += f'<div style="flex:1; min-width:80px; background:#f8f9fa; border:1px solid #eee; padding:5px; border-radius:4px; margin:2px; text-align:center; font-family:sans-serif;"><div style="font-size:9px; color:#666; text-transform:uppercase;">{dim}</div><div style="font-size:14px; font-weight:bold; color:{cor};">{nota}</div><div style="font-size:7px; color:#888;">{txt}</div></div>'
 
-            # Raio-X Detalhado
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante que todas as perguntas sejam listadas
+            # Garante que exibe todas as 35 perguntas
             for cat, pergs in st.session_state.hse_questions.items():
                  html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee; font-family:sans-serif;">{cat}</div>'
                  for q in pergs:
@@ -786,8 +779,6 @@ def admin_dashboard():
                      c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
                      if val == 0: c_bar = "#ddd"
                      html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
-
-            html_act = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
             html_gauge_css = f"""
             <div style="text-align:center; padding:10px; font-family:sans-serif;">
@@ -911,7 +902,7 @@ def admin_dashboard():
             fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
             st.plotly_chart(fig_comp, use_container_width=True)
             
-            # --- RELATÓRIO DE HISTÓRICO EM PDF (CORRIGIDO) ---
+            # --- RELATÓRIO DE HISTÓRICO ---
             if st.button("📥 Baixar Relatório Evolutivo (HTML)", type="primary"):
                  st.markdown("---")
                  logo_html = get_logo_html(150)
@@ -922,7 +913,6 @@ def admin_dashboard():
                  diff_score = dados_b['score'] - dados_a['score']
                  txt_evolucao = "Melhoria observada" if diff_score > 0 else "Ponto de atenção"
                  
-                 # Usar CSS para barra de progresso visual em vez de imagem
                  chart_css_viz = f"""
                  <div style="text-align:center; padding:20px; border:1px solid #eee; border-radius:8px; font-family:sans-serif;">
                      <strong>Score {periodo_a}:</strong> {dados_a['score']} <br>
@@ -968,22 +958,10 @@ def admin_dashboard():
     elif selected == "Configurações":
         if perm == "Master":
             st.title("Configurações")
-            t1, t2, t3 = st.tabs(["Identidade", "Acessos", "Sistema"])
+            t1, t2, t3 = st.tabs(["Usuários", "Sistema", "Identidade"])
             
-            # --- CORREÇÃO DAS ABAS TROCADAS ---
+            # --- CORREÇÃO DAS ABAS ---
             with t1:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
-                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
-                nl = st.file_uploader("Logo")
-                if st.button("Salvar Identidade"):
-                    st.session_state.platform_config['name'] = nn
-                    st.session_state.platform_config['consultancy'] = nc
-                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            with t2:
                  st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                  st.write("Gestão de Usuários")
                  users_list = []
@@ -1009,13 +987,25 @@ def admin_dashboard():
                      st.rerun()
                  st.markdown("</div>", unsafe_allow_html=True)
             
-            with t3:
+            with t2:
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 nu = st.text_input("URL Base (Ex: https://meuapp.streamlit.app)", value=st.session_state.platform_config.get('base_url', ''))
                 if st.button("Salvar URL"):
                     st.session_state.platform_config['base_url'] = nu
                     st.success("OK")
                 st.info(f"Supabase Status: {'Online' if DB_CONNECTED else 'Offline'}")
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            with t3:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
+                nl = st.file_uploader("Logo")
+                if st.button("Salvar Identidade"):
+                    st.session_state.platform_config['name'] = nn
+                    st.session_state.platform_config['consultancy'] = nc
+                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
+                    st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
         else:
@@ -1061,32 +1051,24 @@ def survey_screen():
         setores = list(comp['org_structure'].keys())
         setor = c2.selectbox("Setor", setores)
         
-        # Cargo REMOVIDO para o colaborador
+        # Cargo removido visualmente
         
         st.markdown("---")
-        tabs = st.tabs(list(st.session_state.hse_questions.keys()))
-        for i, (cat, pergs) in enumerate(st.session_state.hse_questions.items()):
-            with tabs[i]:
-                st.markdown(f"**{cat}**")
-                for q in pergs:
-                    # Inicia VAZIO (index=None) e layout horizontal (Radio Button)
-                    opts = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo", "Neutro", "Concordo"]
-                    st.radio(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", horizontal=True, index=None, help=q['help'])
-                    st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
+        missing = False
+        for cat, qs in st.session_state.hse_questions.items():
+            st.markdown(f"**{cat}**")
+            for q in qs:
+                # UX: Radio button horizontal obrigatório
+                val = st.radio(q['q'], ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"], key=f"q_{q['id']}", horizontal=True, index=None)
+                if val is None: missing = True
+                st.markdown("<hr style='margin:5px 0'>", unsafe_allow_html=True)
 
         aceite = st.checkbox("Declaro que li e concordo com o tratamento dos meus dados para fins estatísticos de saúde ocupacional, garantido o sigilo individual.")
         
         if st.form_submit_button("✅ Enviar Respostas"):
-             # Validação rigorosa de TODAS as perguntas
-             missing = []
-             for cat, pergs in st.session_state.hse_questions.items():
-                 for q in pergs:
-                     if st.session_state.get(f"q_{q['id']}") is None:
-                         missing.append(q['q'])
-             
              if not cpf: st.error("⚠️ O CPF é obrigatório.")
              elif not aceite: st.error("⚠️ Aceite obrigatório.")
-             elif missing: st.error(f"⚠️ Você precisa responder todas as perguntas. Faltam: {len(missing)}")
+             elif missing: st.error("⚠️ Você precisa responder todas as perguntas.")
              else:
                  st.success("Sucesso!"); st.balloons()
                  comp['respondidas'] += 1 # Mock update
