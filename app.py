@@ -99,7 +99,7 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Radio Button Horizontal */
+    /* Ajuste Radio Button Horizontal - UX Melhorada */
     div[role="radiogroup"] > label {{
         font-weight: 500; color: #444; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee;
         cursor: pointer; transition: all 0.3s;
@@ -118,16 +118,8 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. DADOS E INICIALIZAÇÃO DE VARIÁVEIS (CRÍTICO)
+# 3. DADOS
 # ==============================================================================
-# Garante que as variáveis de sessão existam
-keys = ['logged_in', 'user_role', 'admin_permission', 'user_username', 'user_credits', 'user_linked_company', 'edit_mode', 'edit_id', 'acoes_list']
-for k in keys:
-    if k not in st.session_state: st.session_state[k] = None
-if st.session_state.acoes_list is None: st.session_state.acoes_list = []
-if st.session_state.user_credits is None: st.session_state.user_credits = 0
-
-# --- MOCK DATA (PARA O SISTEMA NÃO INICIAR ZERADO) ---
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "admin": {"password": "admin", "role": "Master", "credits": 99999, "valid_until": "2099-12-31"},
@@ -135,7 +127,6 @@ if 'users_db' not in st.session_state:
     }
 
 if 'companies_db' not in st.session_state:
-    # Cria uma empresa padrão populada para evitar painel vazio
     st.session_state.companies_db = [
         {
             "id": "IND01", "razao": "Indústria Têxtil Fabril (Exemplo)", "cnpj": "00.000.000/0001-00", 
@@ -196,7 +187,7 @@ if 'hse_questions' not in st.session_state:
             {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Ex: Piadas ofensivas."},
             {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Ex: Brigas e fofocas."},
             {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Ex: Exclusão."},
-            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Medo de falar com as pessoas."}
+            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Ex: Clima pesado."}
         ],
         "Papel": [
             {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Ex: Metas claras."},
@@ -211,6 +202,17 @@ if 'hse_questions' not in st.session_state:
             {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Ex: Comunicação transparente."}
         ]
     }
+
+if 'base_url' not in st.session_state: st.session_state.base_url = "http://localhost:8501" 
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'user_role' not in st.session_state: st.session_state.user_role = None
+if 'admin_permission' not in st.session_state: st.session_state.admin_permission = None
+if 'user_username' not in st.session_state: st.session_state.user_username = None 
+if 'user_credits' not in st.session_state: st.session_state.user_credits = 0
+if 'user_linked_company' not in st.session_state: st.session_state.user_linked_company = None
+if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
+if 'edit_id' not in st.session_state: st.session_state.edit_id = None
+if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
 
 # --- 4. FUNÇÕES AUXILIARES ---
 def generate_mock_history():
@@ -265,11 +267,15 @@ def image_to_base64(uploaded_file):
     except: pass
     return None
 
-def logout(): 
-    st.session_state.logged_in = False
-    st.session_state.user_role = None
-    st.session_state.admin_permission = None
-    st.rerun()
+def fig_to_base64(fig):
+    try:
+        img_bytes = fig.to_image(format="png", width=600, height=300)
+        encoded = base64.b64encode(img_bytes).decode()
+        return f"data:image/png;base64,{encoded}"
+    except:
+        return None
+
+def logout(): st.session_state.logged_in = False; st.session_state.user_role = None; st.session_state.admin_permission = None; st.rerun()
 
 def kpi_card(title, value, icon, color_class):
     st.markdown(f"""<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon-box {color_class}">{icon}</div><div class="kpi-value">{value}</div></div><div class="kpi-title">{title}</div></div>""", unsafe_allow_html=True)
@@ -369,6 +375,11 @@ def login_screen():
                     else:
                         st.session_state.logged_in = True
                         st.session_state.user_role = 'admin'
+                        # GARANTIA DE ACESSO MASTER
+                        if user == 'admin':
+                            user_role_type = 'Master'
+                            user_credits = 99999
+                        
                         st.session_state.admin_permission = user_role_type 
                         st.session_state.user_username = user
                         st.session_state.user_credits = user_credits
@@ -447,6 +458,7 @@ def admin_dashboard():
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c['func'] for c in companies_filtered)
+        pendentes_view = total_vidas_view - total_resp_view
         
         col1, col2, col3, col4 = st.columns(4)
         if perm == "Analista":
@@ -781,8 +793,6 @@ def admin_dashboard():
                      if val == 0: c_bar = "#ddd"
                      html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
 
-            html_act = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
-
             html_gauge_css = f"""
             <div style="text-align:center; padding:10px; font-family:sans-serif;">
                 <div style="font-size:24px; font-weight:bold; color:{COR_PRIMARIA};">{empresa['score']} <span style="font-size:12px; color:#888;">/ 5.0</span></div>
@@ -1087,4 +1097,4 @@ if not st.session_state.logged_in:
     else: login_screen()
 else:
     if st.session_state.user_role == 'admin': admin_dashboard()
-    
+    else: survey_screen()
