@@ -99,13 +99,15 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Radio Button Horizontal */
+    /* Ajuste Radio Button Horizontal - UX Melhorada */
     div[role="radiogroup"] > label {
-        font-weight: 600; color: #444;
+        font-weight: 500; color: #444; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee;
+        cursor: pointer; transition: all 0.3s;
     }
+    div[role="radiogroup"] > label:hover { background: #e2e6ea; }
     div[data-testid="stRadio"] > div {
         flex-direction: row; /* Força horizontal */
-        gap: 20px;
+        gap: 10px; overflow-x: auto;
     }
 
     @media print {{
@@ -294,7 +296,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -512,7 +514,6 @@ def admin_dashboard():
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
-        
         if st.session_state.edit_mode:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.subheader("✏️ Editar Empresa")
@@ -726,11 +727,12 @@ def admin_dashboard():
         analise_auto = gerar_analise_robusta(dimensoes_atuais)
         sugestoes_auto = gerar_banco_sugestoes(dimensoes_atuais)
         
+        # CORREÇÃO: Inicialização de Variáveis de Controle
         if 'acoes_list' not in st.session_state: st.session_state.acoes_list = []
         if not st.session_state.acoes_list:
             for s in sugestoes_auto[:3]: st.session_state.acoes_list.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
         
-        # --- DEFINIÇÃO PRÉVIA DA VARIÁVEL HTML_ACT PARA EVITAR ERRO ---
+        # INICIALIZAÇÃO DA VARIÁVEL HTML_ACT ANTES DO USO
         html_act = ""
         if st.session_state.acoes_list:
             for item in st.session_state.acoes_list:
@@ -776,7 +778,7 @@ def admin_dashboard():
             # Raio-X Detalhado
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante que exibe todas as 35 perguntas
+            # Garante que todas as perguntas sejam listadas
             for cat, pergs in st.session_state.hse_questions.items():
                  html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee; font-family:sans-serif;">{cat}</div>'
                  for q in pergs:
@@ -784,8 +786,6 @@ def admin_dashboard():
                      c_bar = COR_RISCO_ALTO if val > 50 else (COR_RISCO_MEDIO if val > 30 else COR_RISCO_BAIXO)
                      if val == 0: c_bar = "#ddd"
                      html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
-
-            html_act = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
 
             html_gauge_css = f"""
             <div style="text-align:center; padding:10px; font-family:sans-serif;">
@@ -879,7 +879,9 @@ def admin_dashboard():
         st.title("Histórico")
         if not visible_companies: st.warning("Cadastre empresas."); return
         empresa_nome = st.selectbox("Empresa", [c['razao'] for c in visible_companies])
+        # CORREÇÃO: Define variável empresa aqui, antes do uso
         empresa = next(c for c in visible_companies if c['razao'] == empresa_nome)
+        
         history_data = generate_mock_history()
         st.info("ℹ️ Exibindo dados históricos.")
 
@@ -964,26 +966,8 @@ def admin_dashboard():
     elif selected == "Configurações":
         if perm == "Master":
             st.title("Configurações")
-            t1, t2, t3 = st.tabs(["Usuários", "Sistema", "Identidade"])
-            with t3:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                # CAMPO DE URL REAL (CORRIGIDO PARA LER DO STATE)
-                nu = st.text_input("URL Base (Ex: https://meuapp.streamlit.app)", value=st.session_state.platform_config.get('base_url', ''))
-                if st.button("Salvar URL"):
-                    st.session_state.platform_config['base_url'] = nu
-                    st.success("OK")
-                
-                st.markdown("---")
-                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
-                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
-                nl = st.file_uploader("Logo")
-                if st.button("Salvar ID"):
-                    st.session_state.platform_config['name'] = nn
-                    st.session_state.platform_config['consultancy'] = nc
-                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
-                    st.rerun()
-
-                st.markdown("</div>", unsafe_allow_html=True)
+            t1, t2, t3 = st.tabs(["👥 Usuários", "🎨 Identidade", "⚙️ Sistema"])
+            
             with t1:
                  st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                  st.write("Gestão de Usuários")
@@ -1001,16 +985,35 @@ def admin_dashboard():
                      st.success("Criado!")
                      st.rerun()
                  
-                 # Exclusão
                  st.markdown("---")
-                 u_del = st.selectbox("Excluir Usuário", [u for u in st.session_state.users_db.keys() if u != st.session_state.user_username])
+                 users_to_del = [u for u in st.session_state.users_db.keys() if u != st.session_state.user_username]
+                 u_del = st.selectbox("Excluir Usuário", users_to_del)
                  if st.button("🗑️ Excluir"):
                      del st.session_state.users_db[u_del]
                      st.success("Excluído!")
                      st.rerun()
                  st.markdown("</div>", unsafe_allow_html=True)
+            
             with t2:
-                 st.info(f"Supabase Status: {'Online' if DB_CONNECTED else 'Offline'}")
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
+                nl = st.file_uploader("Logo")
+                if st.button("Salvar Identidade"):
+                    st.session_state.platform_config['name'] = nn
+                    st.session_state.platform_config['consultancy'] = nc
+                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            with t3:
+                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+                nu = st.text_input("URL Base (Ex: https://meuapp.streamlit.app)", value=st.session_state.platform_config.get('base_url', ''))
+                if st.button("Salvar URL"):
+                    st.session_state.platform_config['base_url'] = nu
+                    st.success("OK")
+                st.info(f"Supabase Status: {'Online' if DB_CONNECTED else 'Offline'}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
         else:
             st.error("Acesso restrito a usuários Master.")
@@ -1048,7 +1051,7 @@ def survey_screen():
     st.markdown("""<div class="security-alert"><strong>🔒 AVALIAÇÃO VERIFICADA E SEGURA</strong><br>Esta pesquisa segue rigorosos padrões de confidencialidade.<br><ul><li><strong>Anonimato Garantido:</strong> A empresa NÃO tem acesso à sua resposta individual.</li><li><strong>Uso do CPF:</strong> Seu CPF é usado <u>apenas</u> para validar que você é um colaborador único e impedir duplicidades. Ele é transformado em um código criptografado (hash) imediatamente.</li><li><strong>Sigilo:</strong> Os resultados são apresentados apenas em formato estatístico (médias do grupo).</li></ul></div>""", unsafe_allow_html=True)
     
     with st.form("survey"):
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns(2) # Ajustado para 2 colunas pois removemos cargo
         cpf = c1.text_input("CPF (Apenas números)")
         
         # 1. Seleciona Setor
