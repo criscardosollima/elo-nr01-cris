@@ -99,9 +99,14 @@ st.markdown(f"""
     .rep-table th {{ background-color: {COR_PRIMARIA}; color: white; padding: 8px; text-align: left; font-size: 9px; }}
     .rep-table td {{ border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }}
     
-    /* Ajuste Slider */
-    div[data-testid="stSlider"] > div {{ padding-top: 0px; }}
-    div[data-testid="stSlider"] label {{ font-size: 14px; font-weight: 600; color: {COR_PRIMARIA}; margin-bottom: 10px; }}
+    /* Ajuste Radio Button Horizontal */
+    div[role="radiogroup"] > label {
+        font-weight: 600; color: #444;
+    }
+    div[data-testid="stRadio"] > div {
+        flex-direction: row; /* Força horizontal */
+        gap: 20px;
+    }
 
     @media print {{
         [data-testid="stSidebar"], .stButton, header, footer, .no-print {{ display: none !important; }}
@@ -289,7 +294,7 @@ def gerar_banco_sugestoes(dimensoes):
     sugestoes = []
     # 50+ AÇÕES HSE
     if dimensoes.get("Demandas", 5) < 3.8:
-        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função.", "area": "Demandas"})
+        sugestoes.append({"acao": "Mapeamento de Carga", "estrat": "Realizar censo de tarefas por função para identificar gargalos.", "area": "Demandas"})
         sugestoes.append({"acao": "Matriz de Priorização", "estrat": "Treinar equipes na Matriz Eisenhower.", "area": "Demandas"})
         sugestoes.append({"acao": "Política Desconexão", "estrat": "Regras sobre mensagens off-horário.", "area": "Demandas"})
         sugestoes.append({"acao": "Revisão de Prazos", "estrat": "Renegociar SLAs internos.", "area": "Demandas"})
@@ -446,7 +451,6 @@ def admin_dashboard():
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c['func'] for c in companies_filtered)
-        pendentes_view = total_vidas_view - total_resp_view
         
         col1, col2, col3, col4 = st.columns(4)
         if perm == "Analista":
@@ -508,6 +512,7 @@ def admin_dashboard():
 
     elif selected == "Empresas":
         st.title("Gestão de Empresas")
+        
         if st.session_state.edit_mode:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
             st.subheader("✏️ Editar Empresa")
@@ -967,6 +972,17 @@ def admin_dashboard():
                 if st.button("Salvar URL"):
                     st.session_state.platform_config['base_url'] = nu
                     st.success("OK")
+                
+                st.markdown("---")
+                nn = st.text_input("Nome Plataforma", value=st.session_state.platform_config['name'])
+                nc = st.text_input("Consultoria", value=st.session_state.platform_config['consultancy'])
+                nl = st.file_uploader("Logo")
+                if st.button("Salvar ID"):
+                    st.session_state.platform_config['name'] = nn
+                    st.session_state.platform_config['consultancy'] = nc
+                    if nl: st.session_state.platform_config['logo_b64'] = image_to_base64(nl)
+                    st.rerun()
+
                 st.markdown("</div>", unsafe_allow_html=True)
             with t1:
                  st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
@@ -987,7 +1003,7 @@ def admin_dashboard():
                  
                  # Exclusão
                  st.markdown("---")
-                 u_del = st.selectbox("Excluir Usuário", [u for u in st.session_state.users_db.keys() if u != curr_user])
+                 u_del = st.selectbox("Excluir Usuário", [u for u in st.session_state.users_db.keys() if u != st.session_state.user_username])
                  if st.button("🗑️ Excluir"):
                      del st.session_state.users_db[u_del]
                      st.success("Excluído!")
@@ -996,7 +1012,8 @@ def admin_dashboard():
             with t2:
                  st.info(f"Supabase Status: {'Online' if DB_CONNECTED else 'Offline'}")
 
-        else: st.error("Acesso restrito.")
+        else:
+            st.error("Acesso restrito a usuários Master.")
 
 # --- 6. TELA PESQUISA ---
 def survey_screen():
@@ -1031,17 +1048,14 @@ def survey_screen():
     st.markdown("""<div class="security-alert"><strong>🔒 AVALIAÇÃO VERIFICADA E SEGURA</strong><br>Esta pesquisa segue rigorosos padrões de confidencialidade.<br><ul><li><strong>Anonimato Garantido:</strong> A empresa NÃO tem acesso à sua resposta individual.</li><li><strong>Uso do CPF:</strong> Seu CPF é usado <u>apenas</u> para validar que você é um colaborador único e impedir duplicidades. Ele é transformado em um código criptografado (hash) imediatamente.</li><li><strong>Sigilo:</strong> Os resultados são apresentados apenas em formato estatístico (médias do grupo).</li></ul></div>""", unsafe_allow_html=True)
     
     with st.form("survey"):
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         cpf = c1.text_input("CPF (Apenas números)")
         
         # 1. Seleciona Setor
         setores = list(comp['org_structure'].keys())
         setor = c2.selectbox("Setor", setores)
         
-        # 2. Carrega Cargos do Setor Selecionado
-        cargos = comp['org_structure'][setor]
-        # CARGO OCULTO NO FORMULARIO VISUAL, MAS INTERNO (OU REMOVIDO SE PREFERIR)
-        # cargo = c3.selectbox("Cargo", cargos) # REMOVIDO PARA COLABORADOR
+        # Cargo removido do formulário visual para o colaborador
         
         st.markdown("---")
         tabs = st.tabs(list(st.session_state.hse_questions.keys()))
@@ -1049,10 +1063,9 @@ def survey_screen():
             with tabs[i]:
                 st.markdown(f"**{cat}**")
                 for q in pergs:
-                    # Inicia VAZIO para obrigar resposta
-                    opts = [None, "Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else [None, "Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"]
-                    # Selectbox ao invés de slider para forçar escolha (slider sempre tem valor default)
-                    st.selectbox(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", help=q['help'], format_func=lambda x: "Selecione..." if x is None else x)
+                    # Inicia VAZIO para obrigar resposta (index=None) e layout horizontal
+                    opts = ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"] if q['id']<=24 else ["Discordo", "Neutro", "Concordo"]
+                    st.radio(label=f"**{q['q']}**", options=opts, key=f"q_{q['id']}", horizontal=True, index=None, help=q['help'])
                     st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
 
         aceite = st.checkbox("Declaro que li e concordo com o tratamento dos meus dados para fins estatísticos de saúde ocupacional, garantido o sigilo individual.")
