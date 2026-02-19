@@ -38,7 +38,7 @@ if 'platform_config' not in st.session_state:
         "name": "Elo NR-01",
         "consultancy": "Pessin Gestão",
         "logo_b64": None,
-        "base_url": "https://elonr01-cris.streamlit.app" # URL atualizada para o seu ambiente correto
+        "base_url": "https://elonr01-cris.streamlit.app" 
     }
 
 # Cores da Identidade Visual
@@ -105,11 +105,11 @@ st.markdown(f"""
         font-weight: 500; color: #444; background: #f8f9fa; padding: 10px 16px; 
         border-radius: 8px; border: 1px solid #eee; cursor: pointer; 
         transition: all 0.3s;
-        white-space: nowrap; /* Impede que a palavra quebre no meio */
+        white-space: nowrap; 
     }}
     div[role="radiogroup"] > label:hover {{ background: #e2e6ea; border-color: {COR_SECUNDARIA}; }}
     div[data-testid="stRadio"] > div {{ 
-        flex-direction: row; flex-wrap: wrap; /* Permite cair pra linha de baixo se faltar espaço */
+        flex-direction: row; flex-wrap: wrap; 
         gap: 10px; width: 100%; padding-bottom: 10px; 
     }}
 
@@ -136,63 +136,65 @@ if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": {"password": "admin", "role": "Master", "credits": 999999}}
 if 'companies_db' not in st.session_state:
     st.session_state.companies_db = []
+if 'local_responses_db' not in st.session_state:
+    st.session_state.local_responses_db = []
 
-# LISTA COMPLETA HSE 35 PERGUNTAS COM EXEMPLOS HUMANIZADOS E CLAROS
+# LISTA COMPLETA HSE 35 PERGUNTAS COM EXEMPLOS HUMANIZADOS E INVERSÃO DE NOTAS (rev: True/False)
 if 'hse_questions' not in st.session_state:
     st.session_state.hse_questions = {
         "Demandas": [
-            {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "help": "Exemplo: Ser cobrado por entregas urgentes no fim do expediente sem tempo hábil."},
-            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "help": "Exemplo: Sentir que só fazer o seu horário normal não é suficiente para a empresa."},
-            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "help": "Exemplo: Não ter tempo nem para ir ao banheiro ou tomar um café direito devido ao volume de trabalho."},
-            {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "help": "Exemplo: Ter que fazer as coisas 'de qualquer jeito' só para dar tempo de entregar tudo."},
-            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "help": "Exemplo: Precisar pular o horário de almoço ou comer correndo na mesa de trabalho."},
-            {"id": 18, "q": "Sou pressionado por diferentes grupos?", "help": "Exemplo: Receber ordens conflitantes ou urgentes de gestores ou setores diferentes."},
-            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "help": "Exemplo: O ritmo exigido é frenético e desgastante o tempo todo."},
-            {"id": 22, "q": "Tenho prazos irrealistas?", "help": "Exemplo: Metas que, na prática do dia a dia, ninguém da equipe consegue bater."}
+            {"id": 3, "q": "Tenho prazos impossíveis de cumprir?", "rev": True, "help": "Exemplo: Ser cobrado por entregas urgentes no fim do expediente sem tempo hábil."},
+            {"id": 6, "q": "Sou pressionado a trabalhar longas horas?", "rev": True, "help": "Exemplo: Sentir que só fazer o seu horário normal não é suficiente para a empresa."},
+            {"id": 9, "q": "Tenho que trabalhar muito intensamente?", "rev": True, "help": "Exemplo: Não ter tempo nem para respirar ou tomar um café direito devido ao volume de trabalho."},
+            {"id": 12, "q": "Tenho que negligenciar algumas tarefas?", "rev": True, "help": "Exemplo: Ter que fazer as coisas 'de qualquer jeito' só para dar tempo de entregar tudo."},
+            {"id": 16, "q": "Não consigo fazer pausas suficientes?", "rev": True, "help": "Exemplo: Precisar pular o horário de almoço ou comer correndo na mesa de trabalho."},
+            {"id": 18, "q": "Sou pressionado por diferentes grupos?", "rev": True, "help": "Exemplo: Receber ordens conflitantes ou urgentes de gestores ou setores diferentes."},
+            {"id": 20, "q": "Tenho que trabalhar muito rápido?", "rev": True, "help": "Exemplo: O ritmo exigido é frenético e desgastante o tempo todo."},
+            {"id": 22, "q": "Tenho prazos irrealistas?", "rev": True, "help": "Exemplo: Metas que, na prática do dia a dia, ninguém da equipe consegue bater."}
         ],
         "Controle": [
-            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "help": "Exemplo: Ter liberdade para levantar, esticar as pernas ou tomar água sem precisar pedir permissão."},
-            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "help": "Exemplo: Poder escolher o melhor método ou ferramenta para entregar o seu resultado."},
-            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "help": "Exemplo: Poder acelerar ou diminuir o ritmo de trabalho dependendo do seu nível de energia no dia."},
-            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "help": "Exemplo: Ter autonomia para organizar sua própria agenda diária."},
-            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "help": "Exemplo: Suas ideias de melhorias nos processos são ouvidas e aplicadas pela gestão."},
-            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "help": "Exemplo: Ter banco de horas, horários flexíveis de entrada/saída ou acordos amigáveis com o gestor."}
+            {"id": 2, "q": "Posso decidir quando fazer uma pausa?", "rev": False, "help": "Exemplo: Ter liberdade para levantar, esticar as pernas ou tomar água sem precisar pedir permissão."},
+            {"id": 10, "q": "Tenho liberdade para decidir como faço meu trabalho?", "rev": False, "help": "Exemplo: Poder escolher o melhor método ou ferramenta para entregar o seu resultado."},
+            {"id": 15, "q": "Tenho poder de decisão sobre meu ritmo?", "rev": False, "help": "Exemplo: Poder acelerar ou diminuir o ritmo de trabalho dependendo do seu nível de energia no dia."},
+            {"id": 19, "q": "Eu decido quando vou realizar cada tarefa?", "rev": False, "help": "Exemplo: Ter autonomia para organizar sua própria agenda diária."},
+            {"id": 25, "q": "Tenho voz sobre como meu trabalho é realizado?", "rev": False, "help": "Exemplo: Suas ideias de melhorias nos processos são ouvidas e aplicadas pela gestão."},
+            {"id": 30, "q": "Meu tempo de trabalho pode ser flexível?", "rev": False, "help": "Exemplo: Ter banco de horas, horários flexíveis de entrada/saída ou acordos amigáveis com o gestor."}
         ],
         "Suporte Gestor": [
-            {"id": 8, "q": "Recebo feedback sobre o trabalho?", "help": "Exemplo: Seu gestor senta com você para conversar de forma clara sobre o que está bom e o que pode melhorar."},
-            {"id": 23, "q": "Posso contar com meu superior num problema?", "help": "Exemplo: Saber que o gestor vai te ajudar a resolver uma falha técnica em vez de apenas te culpar."},
-            {"id": 29, "q": "Posso falar com meu superior sobre algo que me chateou?", "help": "Exemplo: Ter abertura para conversas sinceras e humanas sem medo de retaliação."},
-            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "help": "Exemplo: Sentir que seu chefe 'joga no seu time' e se importa com seu bem-estar geral."},
-            {"id": 35, "q": "Meu gestor me incentiva no trabalho?", "help": "Exemplo: Receber elogios, reconhecimento e motivação quando faz um bom trabalho."}
+            {"id": 8, "q": "Recebo feedback sobre o trabalho?", "rev": False, "help": "Exemplo: Seu gestor senta com você para conversar de forma clara sobre o que está bom e o que pode melhorar."},
+            {"id": 23, "q": "Posso contar com meu superior num problema?", "rev": False, "help": "Exemplo: Saber que o gestor vai te ajudar a resolver uma falha técnica em vez de apenas te culpar."},
+            {"id": 29, "q": "Posso falar com meu superior sobre algo que me chateou?", "rev": False, "help": "Exemplo: Ter abertura para conversas sinceras e humanas sem medo de retaliação."},
+            {"id": 33, "q": "Sinto apoio do meu gestor(a)?", "rev": False, "help": "Exemplo: Sentir que seu chefe 'joga no seu time' e se importa com seu bem-estar geral."},
+            {"id": 35, "q": "Meu gestor me incentiva no trabalho?", "rev": False, "help": "Exemplo: Receber elogios, reconhecimento e motivação quando faz um bom trabalho."}
         ],
         "Suporte Pares": [
-            {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "help": "Exemplo: A equipe é unida e um cobre o outro quando necessário."},
-            {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "help": "Exemplo: O tratamento no dia a dia é cordial, respeitoso e livre de preconceitos."},
-            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "help": "Exemplo: Ter com quem desabafar sobre um dia difícil ou um cliente complicado."},
-            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "help": "Exemplo: A equipe divide o peso quando o volume de trabalho está muito alto para uma pessoa só."}
+            {"id": 7, "q": "Recebo a ajuda e o apoio que preciso dos meus colegas?", "rev": False, "help": "Exemplo: A equipe é unida e um cobre o outro quando necessário."},
+            {"id": 24, "q": "Recebo o respeito que mereço dos meus colegas?", "rev": False, "help": "Exemplo: O tratamento no dia a dia é cordial, respeitoso e livre de preconceitos."},
+            {"id": 27, "q": "Meus colegas estão dispostos a me ouvir sobre problemas?", "rev": False, "help": "Exemplo: Ter com quem desabafar sobre um dia difícil ou um cliente complicado."},
+            {"id": 31, "q": "Meus colegas me ajudam em momentos difíceis?", "rev": False, "help": "Exemplo: A equipe divide o peso quando o volume de trabalho está muito alto para uma pessoa só."}
         ],
         "Relacionamentos": [
-            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "help": "Exemplo: Sofrer comentários desrespeitosos, constrangedores ou pressões indevidas no ambiente de trabalho."},
-            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "help": "Exemplo: O clima geral é de fofoca, panelinhas ou brigas constantes no setor."},
-            {"id": 21, "q": "Estou sujeito a bullying?", "help": "Exemplo: Ser excluído propositalmente de conversas, grupos ou ser alvo de piadas repetitivas e maldosas."},
-            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "help": "Exemplo: Aquele clima pesado onde todos parecem pisar em ovos para falar com o outro."}
+            {"id": 5, "q": "Estou sujeito a assédio pessoal?", "rev": True, "help": "Exemplo: Sofrer comentários desrespeitosos, constrangedores ou pressões indevidas no ambiente de trabalho."},
+            {"id": 14, "q": "Há atritos ou conflitos entre colegas?", "rev": True, "help": "Exemplo: O clima geral é de fofoca, panelinhas ou brigas constantes no setor."},
+            {"id": 21, "q": "Estou sujeito a bullying?", "rev": True, "help": "Exemplo: Ser excluído propositalmente de conversas, grupos ou ser alvo de piadas repetitivas e maldosas."},
+            {"id": 34, "q": "Os relacionamentos no trabalho são tensos?", "rev": True, "help": "Exemplo: Aquele clima pesado onde todos parecem pisar em ovos para falar com o outro."}
         ],
         "Papel": [
-            {"id": 1, "q": "Sei claramente o que é esperado de mim?", "help": "Exemplo: Suas metas, entregas e funções diárias estão muito bem definidas."},
-            {"id": 4, "q": "Sei como fazer para executar meu trabalho?", "help": "Exemplo: Você recebeu o treinamento necessário e tem as ferramentas certas para trabalhar bem."},
-            {"id": 11, "q": "Sei quais são os objetivos do meu departamento?", "help": "Exemplo: Você entende para onde sua equipe está caminhando e o que precisa ser entregue no fim do mês."},
-            {"id": 13, "q": "Sei o quanto de responsabilidade tenho?", "help": "Exemplo: Os limites de até onde você pode agir, aprovar e decidir são claros."},
-            {"id": 17, "q": "Entendo meu encaixe na empresa?", "help": "Exemplo: Você consegue ver a importância do seu trabalho diário para o sucesso geral do negócio."}
+            {"id": 1, "q": "Sei claramente o que é esperado de mim?", "rev": False, "help": "Exemplo: Suas metas, entregas e funções diárias estão muito bem definidas."},
+            {"id": 4, "q": "Sei como fazer para executar meu trabalho?", "rev": False, "help": "Exemplo: Você recebeu o treinamento necessário e tem as ferramentas certas para trabalhar bem."},
+            {"id": 11, "q": "Sei quais são os objetivos do meu departamento?", "rev": False, "help": "Exemplo: Você entende para onde sua equipe está caminhando e o que precisa ser entregue no fim do mês."},
+            {"id": 13, "q": "Sei o quanto de responsabilidade tenho?", "rev": False, "help": "Exemplo: Os limites de até onde você pode agir, aprovar e decidir são claros."},
+            {"id": 17, "q": "Entendo meu encaixe na empresa?", "rev": False, "help": "Exemplo: Você consegue ver a importância do seu trabalho diário para o sucesso geral do negócio."}
         ],
         "Mudança": [
-            {"id": 26, "q": "Tenho oportunidade de questionar sobre mudanças?", "help": "Exemplo: Haver espaço para tirar dúvidas reais quando uma nova regra ou sistema é criado."},
-            {"id": 28, "q": "Sou consultado(a) sobre mudanças no trabalho?", "help": "Exemplo: A diretoria ou chefia pede a opinião de quem executa antes de mudar um processo."},
-            {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "help": "Exemplo: A comunicação é transparente, bem explicada e não gera confusão na equipe."}
+            {"id": 26, "q": "Tenho oportunidade de questionar sobre mudanças?", "rev": False, "help": "Exemplo: Haver espaço para tirar dúvidas reais quando uma nova regra ou sistema é criado."},
+            {"id": 28, "q": "Sou consultado(a) sobre mudanças no trabalho?", "rev": False, "help": "Exemplo: A diretoria ou chefia pede a opinião de quem executa antes de mudar um processo."},
+            {"id": 32, "q": "Quando mudanças são feitas, fica claro como funcionarão?", "rev": False, "help": "Exemplo: A comunicação é transparente, bem explicada e não gera confusão na equipe."}
         ]
     }
 
 # ==============================================================================
-# 4. FUNÇÕES DE BANCO DE DADOS E LÓGICA CORE
+# 4. FUNÇÕES DE CÁLCULO E BANCO DE DADOS
 # ==============================================================================
 def get_logo_html(width=180):
     if st.session_state.platform_config['logo_b64']:
@@ -209,26 +211,131 @@ def logout():
     st.session_state.logged_in = False
     st.rerun()
 
+def calculate_actual_scores(all_responses, hse_questions):
+    """Calcula os scores reais baseados nas respostas dos colaboradores."""
+    for resp_row in all_responses:
+        ans_dict = resp_row.get('answers', {})
+        total_score = 0
+        count_valid = 0
+        
+        for cat, qs in hse_questions.items():
+            for q in qs:
+                q_text = q['q']
+                is_rev = q.get('rev', False)
+                user_ans = ans_dict.get(q_text)
+                
+                if user_ans:
+                    val = None
+                    if user_ans in ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"]:
+                        # Se a pergunta é negativa (rev=True), Nunca = Bom(5). Se positiva, Sempre = Bom(5).
+                        if is_rev: val = {"Nunca": 5, "Raramente": 4, "Às vezes": 3, "Frequentemente": 2, "Sempre": 1}.get(user_ans)
+                        else: val = {"Nunca": 1, "Raramente": 2, "Às vezes": 3, "Frequentemente": 4, "Sempre": 5}.get(user_ans)
+                    elif user_ans in ["Discordo", "Neutro", "Concordo"]:
+                        if is_rev: val = {"Discordo": 5, "Neutro": 3, "Concordo": 1}.get(user_ans)
+                        else: val = {"Discordo": 1, "Neutro": 3, "Concordo": 5}.get(user_ans)
+
+                    if val is not None:
+                        total_score += val
+                        count_valid += 1
+                        
+        # Armazena o score calculado daquele individuo especifico na linha
+        resp_row['score_calculado'] = round(total_score / count_valid, 2) if count_valid > 0 else 0
+    return all_responses
+
+def process_company_analytics(comp, comp_resps, hse_questions):
+    """Gera as médias dimensionais e o Raio-X com base em dados concretos."""
+    comp['respondidas'] = len(comp_resps)
+    
+    if comp['respondidas'] == 0:
+        comp['score'] = 0
+        comp['dimensoes'] = {cat: 0 for cat in hse_questions.keys()}
+        comp['detalhe_perguntas'] = {}
+        return comp
+
+    dimensoes_totais = {cat: [] for cat in hse_questions.keys()}
+    riscos_por_pergunta = {} 
+    total_por_pergunta = {}
+
+    for resp_row in comp_resps:
+        ans_dict = resp_row.get('answers', {})
+        
+        for cat, qs in hse_questions.items():
+            for q in qs:
+                q_text = q['q']
+                is_rev = q.get('rev', False)
+                user_ans = ans_dict.get(q_text)
+                
+                if user_ans:
+                    val = None
+                    if user_ans in ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"]:
+                        if is_rev: val = {"Nunca": 5, "Raramente": 4, "Às vezes": 3, "Frequentemente": 2, "Sempre": 1}.get(user_ans)
+                        else: val = {"Nunca": 1, "Raramente": 2, "Às vezes": 3, "Frequentemente": 4, "Sempre": 5}.get(user_ans)
+                    elif user_ans in ["Discordo", "Neutro", "Concordo"]:
+                        if is_rev: val = {"Discordo": 5, "Neutro": 3, "Concordo": 1}.get(user_ans)
+                        else: val = {"Discordo": 1, "Neutro": 3, "Concordo": 5}.get(user_ans)
+
+                    if val is not None:
+                        dimensoes_totais[cat].append(val)
+                        
+                        # Calculo de Risco para o Raio-X: Se a pessoa pontuou 1 ou 2, é risco.
+                        if q_text not in riscos_por_pergunta:
+                            riscos_por_pergunta[q_text] = 0
+                            total_por_pergunta[q_text] = 0
+                            
+                        total_por_pergunta[q_text] += 1
+                        if val <= 2: 
+                            riscos_por_pergunta[q_text] += 1
+
+    # Médias Dimensionais
+    dim_averages = {}
+    for cat, vals in dimensoes_totais.items():
+        dim_averages[cat] = round(sum(vals) / len(vals), 1) if vals else 0.0
+
+    # Raio-X Percentual
+    detalhe_percent = {}
+    for qt, risk_count in riscos_por_pergunta.items():
+        total = total_por_pergunta[qt]
+        detalhe_percent[qt] = int((risk_count / total) * 100) if total > 0 else 0
+
+    comp['dimensoes'] = dim_averages
+    # Media global da empresa
+    vals_validos = [v for v in dim_averages.values() if v > 0]
+    comp['score'] = round(sum(vals_validos) / len(vals_validos), 1) if vals_validos else 0
+    comp['detalhe_perguntas'] = detalhe_percent
+    
+    return comp
+
 def load_data_from_db():
+    all_answers = []
+    companies = []
+    
     if DB_CONNECTED:
         try:
-            comps = supabase.table('companies').select("*").execute().data
-            resps = supabase.table('responses').select("company_id").execute().data
-            
-            for c in comps:
-                if 'org_structure' not in c or not c['org_structure']: 
-                    c['org_structure'] = {"Geral": ["Geral"]}
-                c['respondidas'] = len([r for r in resps if r['company_id'] == c['id']])
+            companies = supabase.table('companies').select("*").execute().data
+            all_answers = supabase.table('responses').select("*").execute().data
             
             # Atualiza usuários também
             users_raw = supabase.table('admin_users').select("*").execute().data
             if users_raw:
                 st.session_state.users_db = {u['username']: u for u in users_raw}
-                
-            return comps, resps
         except Exception as e:
             pass # Falha silenciosa cai pro local
-    return st.session_state.companies_db, []
+            
+    if not companies:
+        companies = st.session_state.companies_db
+        all_answers = st.session_state.local_responses_db
+        
+    # Processa DADOS REAIS
+    all_answers = calculate_actual_scores(all_answers, st.session_state.hse_questions)
+    
+    for c in companies:
+        if 'org_structure' not in c or not c['org_structure']: 
+            c['org_structure'] = {"Geral": ["Geral"]}
+            
+        comp_resps = [r for r in all_answers if r['company_id'] == c['id']]
+        c = process_company_analytics(c, comp_resps, st.session_state.hse_questions)
+
+    return companies, all_answers
 
 def delete_company(comp_id):
     if DB_CONNECTED:
@@ -493,31 +600,43 @@ def admin_dashboard():
         c1, c2 = st.columns([1, 1.5])
         with c1:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Radar HSE (Média Geral)")
-            if companies_filtered:
+            st.markdown("##### Radar HSE (Média Real)")
+            if companies_filtered and total_resp_view > 0:
                 categories = list(st.session_state.hse_questions.keys())
-                # Valores ficticios de exemplo (em prod. calcularia a media real das respostas)
-                valores_radar = [3.5, 3.2, 4.0, 2.8, 4.5, 3.0, 3.5] 
+                
+                # CÁLCULO REAL DA MÉDIA DAS EMPRESAS FILTRADAS
+                avg_dims = {cat: 0 for cat in categories}
+                count_comps_with_data = 0
+                for c in companies_filtered:
+                    if c.get('respondidas', 0) > 0:
+                        count_comps_with_data += 1
+                        for cat in categories:
+                            avg_dims[cat] += c['dimensoes'].get(cat, 0)
+                
+                if count_comps_with_data > 0:
+                    valores_radar = [round(avg_dims[cat]/count_comps_with_data, 1) for cat in categories]
+                else:
+                    valores_radar = [0]*len(categories)
+
                 fig_radar = go.Figure()
                 fig_radar.add_trace(go.Scatterpolar(r=valores_radar, theta=categories, fill='toself', name='Média', line_color=COR_SECUNDARIA))
                 fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), height=300, margin=dict(t=20, b=20))
                 st.plotly_chart(fig_radar, use_container_width=True)
-            else: st.info("Sem dados para gerar radar.")
+            else: st.info("Sem dados suficientes para gerar radar.")
             st.markdown("</div>", unsafe_allow_html=True)
             
         with c2:
             st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            st.markdown("##### Resultados por Setor")
+            st.markdown("##### Resultados por Setor (Calculado)")
             if responses_filtered:
                 df_resp = pd.DataFrame(responses_filtered)
-                if 'setor' in df_resp.columns:
-                    # Gera score simulado caso a tabela de respostas nao tenha sido processada
-                    if 'score_simulado' not in df_resp.columns: df_resp['score_simulado'] = [random.uniform(2.5, 4.8) for _ in range(len(df_resp))]
-                    df_setor = df_resp.groupby('setor')['score_simulado'].mean().reset_index()
-                    fig_bar = px.bar(df_setor, x='setor', y='score_simulado', title="Score Médio", color='score_simulado', color_continuous_scale='RdYlGn', range_y=[0, 5])
+                if 'setor' in df_resp.columns and 'score_calculado' in df_resp.columns:
+                    # Usa o Score REAL calculado no banco
+                    df_setor = df_resp.groupby('setor')['score_calculado'].mean().reset_index()
+                    fig_bar = px.bar(df_setor, x='setor', y='score_calculado', title="Score Médio Real", color='score_calculado', color_continuous_scale='RdYlGn', range_y=[0, 5])
                     st.plotly_chart(fig_bar, use_container_width=True)
-                else: st.info("Sem dados de setor.")
-            else: st.info("Aguardando novas respostas para gerar o gráfico.")
+                else: st.info("Sem dados de setor estruturados.")
+            else: st.info("Aguardando respostas para gerar o gráfico.")
             st.markdown("</div>", unsafe_allow_html=True)
         
         c3, c4 = st.columns([1.5, 1])
@@ -632,7 +751,7 @@ def admin_dashboard():
                              st.rerun()
                         
                         if perm == "Master":
-                            # CORREÇÃO DA EXCLUSÃO: Chama a função usando o ID, não a posição
+                            # EXCLUSÃO POR ID
                             if c4_2.button("🗑️ Excluir", key=f"del_{emp['id']}"): 
                                 delete_company(emp['id'])
             
@@ -1362,28 +1481,54 @@ def survey_screen():
                 st.error("⚠️ Existem perguntas não respondidas nas abas acima. Navegue pelas categorias e responda todas por favor.")
             else:
                 # Todos os critérios atendidos. Hora de salvar no Banco de Dados Real.
+                hashed_cpf = hashlib.sha256(cpf_raw.encode()).hexdigest()
+                cpf_already_exists = False
+                
                 if DB_CONNECTED:
+                    # Verifica se o CPF já existe para essa empresa
                     try:
-                        # Insere o registro criptografado na tabela 'responses'
-                        supabase.table('responses').insert({
+                        check_cpf = supabase.table('responses').select("id").eq("company_id", comp['id']).eq("cpf_hash", hashed_cpf).execute()
+                        if len(check_cpf.data) > 0:
+                            cpf_already_exists = True
+                    except Exception as e:
+                        pass # Continua se falhar a checagem
+                        
+                else:
+                    # Verificação em memória local se offline
+                    for r in st.session_state.local_responses_db:
+                        if r['company_id'] == comp['id'] and r['cpf_hash'] == hashed_cpf:
+                            cpf_already_exists = True
+                            break
+
+                if cpf_already_exists:
+                    st.error("🚫 Identificamos que já existe uma resposta registrada para o seu CPF nesta avaliação. Para garantir a fidelidade dos dados, permitimos apenas uma resposta por colaborador.")
+                else:
+                    if DB_CONNECTED:
+                        try:
+                            # Insere o registro criptografado na tabela 'responses'
+                            supabase.table('responses').insert({
+                                "company_id": comp['id'], 
+                                "cpf_hash": hashed_cpf,
+                                "setor": setor_colab, 
+                                "answers": answers_dict
+                            }).execute()
+                        except Exception as e: 
+                            st.error(f"Erro de processamento no banco: {e}")
+                    else:
+                        st.session_state.local_responses_db.append({
                             "company_id": comp['id'], 
-                            "cpf_hash": hashlib.sha256(cpf_raw.encode()).hexdigest(),
+                            "cpf_hash": hashed_cpf,
                             "setor": setor_colab, 
                             "answers": answers_dict
-                        }).execute()
-                    except Exception as e: 
-                        st.error(f"Erro de processamento no banco: {e}")
-                
-                # Atualização Visual do Contador Local
-                comp['respondidas'] = comp.get('respondidas', 0) + 1
-                
-                st.success("🎉 Avaliação recebida com sucesso! Obrigado pela sua contribuição genuína.")
-                st.balloons()
-                time.sleep(3) # Tempo para ler a mensagem antes de atualizar a pagina
-                
-                # Reinicia a sessao para não permitir double-submit acidental
-                st.session_state.logged_in = False 
-                st.rerun()
+                        })
+
+                    st.success("🎉 Avaliação recebida com sucesso! Obrigado pela sua contribuição genuína.")
+                    st.balloons()
+                    time.sleep(3) # Tempo para ler a mensagem antes de atualizar a pagina
+                    
+                    # Reinicia a sessao para não permitir double-submit acidental
+                    st.session_state.logged_in = False 
+                    st.rerun()
 
 # ==============================================================================
 # 7. ROUTER CENTRAL (START DO APP)
