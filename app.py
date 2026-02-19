@@ -338,16 +338,26 @@ def load_data_from_db():
     return companies, all_answers
 
 def delete_company(comp_id):
+    """
+    Exclui a empresa e todas as suas dependências (efeito cascata manual) para
+    evitar erro de Restrição de Chave Estrangeira (Foreign Key Constraint).
+    """
     if DB_CONNECTED:
         try:
-            supabase.table('companies').delete().eq('id', comp_id).execute()
+            # 1. Deleta todas as respostas vinculadas primeiro
+            supabase.table('responses').delete().eq('company_id', comp_id).execute()
+            # 2. Deleta os usuários analistas vinculados
             supabase.table('admin_users').delete().eq('linked_company_id', comp_id).execute()
-        except Exception as e: st.warning(f"Erro ao excluir do DB: {e}")
+            # 3. Finalmente deleta a empresa
+            supabase.table('companies').delete().eq('id', comp_id).execute()
+        except Exception as e: 
+            st.warning(f"Erro ao excluir do DB: {e}")
+            return # Interrompe a função para não dar sucesso falso
     
     # Proteção: Remove baseado no ID, não no índice
     st.session_state.companies_db = [c for c in st.session_state.companies_db if c['id'] != comp_id]
-    st.success("✅ Empresa excluída com sucesso!")
-    time.sleep(1)
+    st.success("✅ Empresa e todos os dados vinculados foram excluídos com sucesso!")
+    time.sleep(1.5)
     st.rerun()
 
 def delete_user(username):
