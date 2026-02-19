@@ -234,6 +234,7 @@ def delete_company(comp_id):
             supabase.table('admin_users').delete().eq('linked_company_id', comp_id).execute()
         except Exception as e: st.warning(f"Erro ao excluir do DB: {e}")
     
+    # Proteção: Remove baseado no ID, não no índice
     st.session_state.companies_db = [c for c in st.session_state.companies_db if c['id'] != comp_id]
     st.success("✅ Empresa excluída com sucesso!")
     time.sleep(1)
@@ -555,7 +556,7 @@ def admin_dashboard():
                     idx_risco = risco_opts.index(emp_edit.get('risco',1)) if emp_edit.get('risco',1) in risco_opts else 0
                     new_risco = c4.selectbox("Grau de Risco", risco_opts, index=idx_risco)
                     new_func = c5.number_input("Vidas (Funcionários)", min_value=1, value=emp_edit.get('func',100))
-                    new_limit = c6.number_input("Cota de Avaliações Contratada", min_value=1, value=emp_edit.get('limit_evals', 100))
+                    new_limit = c6.number_input("Cota da Empresa", min_value=1, value=emp_edit.get('limit_evals', 100))
                     
                     seg_opts = ["GHE", "Setor", "GES"]
                     idx_seg = seg_opts.index(emp_edit.get('segmentacao','GHE')) if emp_edit.get('segmentacao','GHE') in seg_opts else 0
@@ -628,7 +629,7 @@ def admin_dashboard():
                              st.rerun()
                         
                         if perm == "Master":
-                            # CORREÇÃO DA EXCLUSÃO (Usa a função com ID)
+                            # CORREÇÃO DA EXCLUSÃO: Chama a função usando o ID, não a posição
                             if c4_2.button("🗑️ Excluir", key=f"del_{emp['id']}"): 
                                 delete_company(emp['id'])
             
@@ -727,9 +728,8 @@ def admin_dashboard():
         
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
         
-        # Encontra a empresa e seu índice local para atualização rápida
+        # Encontra a empresa para atualização rápida
         empresa = next((c for c in visible_companies if c['razao'] == empresa_nome), None)
-        empresa_idx_local = next((i for i, item in enumerate(st.session_state.companies_db) if item["razao"] == empresa_nome), None)
         
         if empresa is not None:
             if 'org_structure' not in empresa or not empresa['org_structure']: 
@@ -846,11 +846,11 @@ def admin_dashboard():
         sugestoes_auto = gerar_banco_sugestoes(dimensoes_atuais)
         
         # --- PREPARAÇÃO SEGURA DA TABELA DE AÇÕES ---
-        # Garante que html_act sempre existira para o botao nao falhar (NameError Fix)
+        # Garante que html_act sempre existira para o botao nao falhar
         if st.session_state.acoes_list is None: st.session_state.acoes_list = []
         if not st.session_state.acoes_list and sugestoes_auto:
-            # Puxa ate 3 recomendacoes do banco de acoes inteligente para iniciar
-            for s in sugestoes_auto[:3]: 
+            # CORREÇÃO: Removido o [:3]. Agora o relatório irá sugerir TODAS as ações calculadas pela inteligência!
+            for s in sugestoes_auto: 
                 st.session_state.acoes_list.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
         
         html_act = ""
@@ -867,7 +867,7 @@ def admin_dashboard():
             st.markdown("---")
             st.markdown("##### 2. Seleção Rápida do Banco de Ações Inteligentes")
             opcoes_formatadas = [f"[{s['area']}] {s['acao']}: {s['estrat']}" for s in sugestoes_auto]
-            selecionadas = st.multiselect("Selecione as sugestões adequadas ao cenário da empresa:", options=opcoes_formatadas)
+            selecionadas = st.multiselect("Selecione sugestões adicionais adequadas ao cenário da empresa:", options=opcoes_formatadas)
             if st.button("⬇️ Adicionar à Tabela de Ações"):
                 novas = []
                 for item_str in selecionadas:
@@ -901,7 +901,7 @@ def admin_dashboard():
 
             html_x = ""
             detalhes = empresa.get('detalhe_perguntas', {})
-            # Garante iteração pelas 35 perguntas sem quebrar (Obrigatório para a estrutura do PDF)
+            # Garante iteração pelas 35 perguntas sem quebrar
             for cat, pergs in st.session_state.hse_questions.items():
                  html_x += f'<div style="font-weight:bold; color:{COR_PRIMARIA}; font-size:10px; margin-top:10px; border-bottom:1px solid #eee; font-family:sans-serif;">{cat}</div>'
                  for q in pergs:
@@ -910,7 +910,7 @@ def admin_dashboard():
                      if val == 0: c_bar = "#ddd"
                      html_x += f'<div style="margin-bottom:4px; font-family:sans-serif;"><div style="display:flex; justify-content:space-between; font-size:9px;"><span>{q["q"]}</span><span>{val}% Risco</span></div><div style="width:100%; background:#f0f0f0; height:6px; border-radius:3px;"><div style="width:{val}%; background:{c_bar}; height:100%; border-radius:3px;"></div></div></div>'
 
-            # Recalcula string HTML Ações baseada nas ultimas edicoes da tabela do Data Editor
+            # Recalcula string HTML Ações baseada nas ultimas edicoes da tabela
             html_act_final = "".join([f"<tr><td>{i.get('acao','')}</td><td>{i.get('estrat','')}</td><td>{i.get('area','')}</td><td>{i.get('resp','')}</td><td>{i.get('prazo','')}</td></tr>" for i in st.session_state.acoes_list])
             if not st.session_state.acoes_list: html_act_final = "<tr><td colspan='5'>Nenhuma ação selecionada.</td></tr>"
 
@@ -1011,11 +1011,9 @@ def admin_dashboard():
         if not visible_companies: st.warning("Cadastre empresas primeiro."); return
         
         empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
-        # Define variável de forma segura globalmente
         empresa = next((c for c in visible_companies if c['razao'] == empresa_nome), None)
         
         if empresa:
-            # Em prod real, isto buscaria dados consolidados do histórico do banco
             history_data = generate_mock_history()
             st.info("ℹ️ Exibindo dados consolidados de histórico para fins de comparativo.")
 
@@ -1047,7 +1045,6 @@ def admin_dashboard():
                     st.plotly_chart(fig_comp, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
                     
-                    # --- GERAÇÃO DO RELATÓRIO DE HISTÓRICO ---
                     if st.button("📥 Baixar Relatório Evolutivo (HTML)", type="primary"):
                          st.markdown("---")
                          logo_html = get_logo_html(150)
@@ -1058,7 +1055,6 @@ def admin_dashboard():
                          diff_score = dados_b['score'] - dados_a['score']
                          txt_evolucao = "Melhoria geral observada" if diff_score > 0 else "Estabilidade/Ponto de atenção crítico detectado"
                          
-                         # CSS para as barras de progresso comparativas do PDF
                          chart_css_viz = f"""
                          <div style="padding:20px; border:1px solid #eee; border-radius:8px; font-family:sans-serif; background:#fafafa;">
                              <div style="margin-bottom: 15px;">
