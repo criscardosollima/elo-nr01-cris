@@ -33,13 +33,27 @@ try:
 except Exception as e:
     DB_CONNECTED = False
 
-if 'platform_config' not in st.session_state:
-    st.session_state.platform_config = {
+def get_saved_settings():
+    """Recupera as configurações de identidade visual e URL salvas no banco de dados."""
+    default_conf = {
         "name": "Elo NR-01",
-        "consultancy": "Pessin Gestão",
+        "consultancy": "Pessin Gestão e Desenvolvimento Humano",
         "logo_b64": None,
         "base_url": "https://elonr01-cris.streamlit.app" 
     }
+    if DB_CONNECTED:
+        try:
+            res = supabase.table('platform_settings').select('config_json').execute()
+            if res.data and len(res.data) > 0:
+                db_conf = res.data[0].get('config_json', {})
+                default_conf.update(db_conf)
+        except Exception:
+            pass
+    return default_conf
+
+# Inicializa as configurações persistentes
+if 'platform_config' not in st.session_state:
+    st.session_state.platform_config = get_saved_settings()
 
 # Cores da Identidade Visual
 COR_PRIMARIA = "#003B49"    
@@ -52,7 +66,7 @@ COR_COMP_A = "#3498db"
 COR_COMP_B = "#9b59b6"
 
 # ==============================================================================
-# 2. CSS OTIMIZADO (ESTRUTURADO)
+# 2. CSS OTIMIZADO (ESTRUTURADO E HUMANIZADO)
 # ==============================================================================
 st.markdown(f"""
     <style>
@@ -247,7 +261,7 @@ if st.session_state.acoes_list is None:
 if st.session_state.user_credits is None: 
     st.session_state.user_credits = 0
 
-# Mock inicial para caso o banco falhe
+# Mock inicial (Apenas como Fail-Safe)
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "admin": {
@@ -549,6 +563,7 @@ def calculate_actual_scores(all_responses, hse_questions):
                 if user_ans:
                     val = None
                     if user_ans in ["Nunca", "Raramente", "Às vezes", "Frequentemente", "Sempre"]:
+                        # Se a pergunta é negativa (rev=True), Nunca = Bom(5). Se positiva, Sempre = Bom(5).
                         if is_rev: 
                             val = {"Nunca": 5, "Raramente": 4, "Às vezes": 3, "Frequentemente": 2, "Sempre": 1}.get(user_ans)
                         else: 
@@ -564,6 +579,7 @@ def calculate_actual_scores(all_responses, hse_questions):
                         total_score += val
                         count_valid += 1
                         
+        # Armazena o score calculado daquele individuo especifico na linha
         resp_row['score_calculado'] = round(total_score / count_valid, 2) if count_valid > 0 else 0
     
     return all_responses
@@ -571,6 +587,7 @@ def calculate_actual_scores(all_responses, hse_questions):
 def process_company_analytics(comp, comp_resps, hse_questions):
     """
     Gera as médias dimensionais e o Raio-X com base em dados concretos (respostas do DB).
+    [NOVO CÁLCULO DE RISCO MATEMÁTICO NORMALIZADO (Fim do 0% falso)]
     """
     comp['respondidas'] = len(comp_resps)
     
@@ -581,7 +598,7 @@ def process_company_analytics(comp, comp_resps, hse_questions):
         return comp
 
     dimensoes_totais = {cat: [] for cat in hse_questions.keys()}
-    riscos_por_pergunta = {} 
+    soma_por_pergunta = {} 
     total_por_pergunta = {}
 
     for resp_row in comp_resps:
@@ -610,27 +627,29 @@ def process_company_analytics(comp, comp_resps, hse_questions):
                     if val is not None:
                         dimensoes_totais[cat].append(val)
                         
-                        if q_text not in riscos_por_pergunta:
-                            riscos_por_pergunta[q_text] = 0
+                        if q_text not in soma_por_pergunta:
+                            soma_por_pergunta[q_text] = 0
                             total_por_pergunta[q_text] = 0
                             
                         total_por_pergunta[q_text] += 1
-                        
-                        # CRÍTICO: Ajuste fino do Raio-X. 
-                        # Notas 1, 2 e 3 agora representam Risco/Atenção. (Ex: "Às vezes" = 3 = Risco Moderado).
-                        if val <= 3: 
-                            riscos_por_pergunta[q_text] += 1
+                        soma_por_pergunta[q_text] += val
 
     # Médias Dimensionais
     dim_averages = {}
     for cat, vals in dimensoes_totais.items():
         dim_averages[cat] = round(sum(vals) / len(vals), 1) if vals else 0.0
 
-    # Raio-X Percentual
+    # CÁLCULO PRECISO DO RAIO-X DE RISCO
+    # A fórmula agora reflete a nota real: Nota 5.0 (Perfeito) = 0% de Risco. Nota 1.0 (Péssimo) = 100% de Risco.
     detalhe_percent = {}
-    for qt, risk_count in riscos_por_pergunta.items():
+    for qt, soma in soma_por_pergunta.items():
         total = total_por_pergunta[qt]
-        detalhe_percent[qt] = int((risk_count / total) * 100) if total > 0 else 0
+        avg_q = soma / total if total > 0 else 0
+        if total > 0:
+            risco = ((5.0 - avg_q) / 4.0) * 100
+            detalhe_percent[qt] = int(risco)
+        else:
+            detalhe_percent[qt] = None # Flag para "Nenhuma resposta"
 
     comp['dimensoes'] = dim_averages
     
@@ -670,7 +689,7 @@ def load_data_from_db():
         if 'org_structure' not in c or not c['org_structure']: 
             c['org_structure'] = {"Geral": ["Geral"]}
             
-        comp_resps = [r for r in all_answers if r['company_id'] == c['id']]
+        comp_resps = [r for r in all_answers if str(r['company_id']) == str(c['id'])]
         c = process_company_analytics(c, comp_resps, st.session_state.hse_questions)
 
     return companies, all_answers
@@ -681,19 +700,20 @@ def generate_real_history(comp_id, all_responses, hse_questions, total_vidas):
     """
     history_dict = {}
     for r in all_responses:
-        if r.get('company_id') != comp_id: 
+        # Filtra apenas respostas da empresa selecionada
+        if str(r.get('company_id')) != str(comp_id): 
             continue
         
         created_at = r.get('created_at')
         if not created_at: 
-            continue
-        
-        try:
-            # Transforma a data do Supabase (ex: '2026-02-19T10:19:00+00:00') em Mes/Ano
-            dt = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-            periodo = dt.strftime('%m/%Y')
-        except:
-            periodo = "Geral"
+            periodo = "Dados Antigos"
+        else:
+            try:
+                # Transforma a data do Supabase (ex: '2026-02-19T10:19:00+00:00') em Mes/Ano
+                dt = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                periodo = dt.strftime('%m/%Y')
+            except:
+                periodo = "Geral"
             
         if periodo not in history_dict:
             history_dict[periodo] = []
@@ -712,7 +732,7 @@ def generate_real_history(comp_id, all_responses, hse_questions, total_vidas):
             "dimensoes": comp_stats.get('dimensoes', {})
         })
         
-    # Ordena cronologicamente do mais antigo pro mais novo
+    # Ordena cronologicamente do mais antigo pro mais novo (se possível)
     try:
         history_list.sort(key=lambda x: datetime.datetime.strptime(x['periodo'], '%m/%Y') if '/' in x['periodo'] else datetime.datetime.min)
     except:
@@ -1151,11 +1171,11 @@ def admin_dashboard():
         if empresa_filtro != "Todas as Empresas":
             companies_filtered = [c for c in visible_companies if c['razao'] == empresa_filtro]
             target_id = companies_filtered[0]['id']
-            responses_filtered = [r for r in responses_data if r['company_id'] == target_id]
+            responses_filtered = [r for r in responses_data if str(r['company_id']) == str(target_id)]
         else:
             companies_filtered = visible_companies
-            ids_visiveis = [c['id'] for c in visible_companies]
-            responses_filtered = [r for r in responses_data if r['company_id'] in ids_visiveis]
+            ids_visiveis = [str(c['id']) for c in visible_companies]
+            responses_filtered = [r for r in responses_data if str(r['company_id']) in ids_visiveis]
 
         total_resp_view = len(responses_filtered)
         total_vidas_view = sum(c.get('func', 0) for c in companies_filtered)
@@ -1640,7 +1660,7 @@ def admin_dashboard():
                     </div>
                     """
 
-            # --- CONSTRUÇÃO DO MAPA DE CALOR (RAIO-X DAS 35 PERGUNTAS DE FORMA EXPANDIDA) ---
+            # --- CONSTRUÇÃO DO MAPA DE CALOR (RAIO-X DAS 35 PERGUNTAS DE FORMA EXPANDIDA E REALISTA) ---
             html_x = ""
             detalhes_heatmap = empresa.get('detalhe_perguntas', {})
             
@@ -1652,22 +1672,28 @@ def admin_dashboard():
                  """
                  
                  for q in pergs:
-                     # Resgata a pocentagem pre-calculada pelo motor Python real
-                     porcentagem_risco = detalhes_heatmap.get(q['q'], 0) 
+                     # Resgata a pocentagem pre-calculada pelo motor Python real. Agora convertida pela fórmula de 0 a 100% exata
+                     val = detalhes_heatmap.get(q['q']) 
                      
-                     # Classificacao da barra CSS
-                     c_bar = COR_RISCO_ALTO if porcentagem_risco > 50 else (COR_RISCO_MEDIO if porcentagem_risco > 30 else COR_RISCO_BAIXO)
-                     if porcentagem_risco == 0: 
-                         c_bar = "#cccccc" # Cor fantasma para 0 respostas
+                     if val is None:
+                         # Se ninguem respondeu ainda
+                         c_bar = "#cccccc" 
+                         txt_exposicao = "Sem Respostas"
+                         val_width = 0
+                     else:
+                         # Classificacao da barra CSS
+                         c_bar = COR_RISCO_ALTO if val >= 50 else (COR_RISCO_MEDIO if val >= 25 else COR_RISCO_BAIXO)
+                         txt_exposicao = f"{val}% Exposição"
+                         val_width = val
                          
                      html_x += f"""
                      <div style="margin-bottom: 6px; font-family: 'Helvetica Neue', Helvetica, sans-serif;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 9px; margin-bottom: 2px;">
                             <span style="color: #444; width: 85%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{q['q']}">{q['q']}</span>
-                            <span style="color: {c_bar}; font-weight: bold; font-size: 8px;">{porcentagem_risco}% Exposição</span>
+                            <span style="color: {c_bar}; font-weight: bold; font-size: 8px;">{txt_exposicao}</span>
                         </div>
                         <div style="width: 100%; background-color: #f0f0f0; height: 6px; border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
-                            <div style="width: {porcentagem_risco}%; background-color: {c_bar}; height: 100%; border-radius: 3px; transition: width 0.5s ease-in-out;"></div>
+                            <div style="width: {val_width}%; background-color: {c_bar}; height: 100%; border-radius: 3px; transition: width 0.5s ease-in-out;"></div>
                         </div>
                      </div>
                      """
