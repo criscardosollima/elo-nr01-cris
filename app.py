@@ -38,7 +38,7 @@ if 'platform_config' not in st.session_state:
         "name": "Elo NR-01",
         "consultancy": "Pessin Gestão",
         "logo_b64": None,
-        "base_url": "https://elo-nr01.streamlit.app"
+        "base_url": "https://elonr01-cris.streamlit.app" # URL atualizada para o seu ambiente correto
     }
 
 # Cores da Identidade Visual
@@ -788,8 +788,8 @@ def admin_dashboard():
             empresa_nome = st.selectbox("Selecione a Empresa", [c['razao'] for c in visible_companies])
             empresa = next(c for c in visible_companies if c['razao'] == empresa_nome)
             
-            # Garante que usamos a URL base correta configurada
-            base_url = st.session_state.platform_config.get('base_url', 'http://localhost:8501')
+            # Garante que usamos a URL base correta configurada, eliminando a ultima barra duplicada
+            base_url = st.session_state.platform_config.get('base_url', 'https://elonr01-cris.streamlit.app').rstrip('/')
             link_final = f"{base_url}/?cod={empresa['id']}"
             
             c1, c2 = st.columns([2, 1])
@@ -804,8 +804,6 @@ def admin_dashboard():
                 except: pass
                 st.caption(f"📊 Avaliações Utilizadas: {usadas} / {limit}")
                 st.caption(f"📅 Validade do Contrato do Link: {val}")
-
-                if "localhost" in base_url: st.warning("⚠️ Você está em Localhost. Vá em Configurações > Sistema e ajuste a URL Base para seu link de produção.")
                 
                 if st.button("👁️ Testar Visão do Colaborador"):
                     st.session_state.current_company = empresa
@@ -849,7 +847,7 @@ def admin_dashboard():
         # Garante que html_act sempre existira para o botao nao falhar
         if st.session_state.acoes_list is None: st.session_state.acoes_list = []
         if not st.session_state.acoes_list and sugestoes_auto:
-            # CORREÇÃO: Removido o [:3]. Agora o relatório irá sugerir TODAS as ações calculadas pela inteligência!
+            # Puxa TODAS as recomendacoes do banco de acoes inteligente para iniciar
             for s in sugestoes_auto: 
                 st.session_state.acoes_list.append({"acao": s['acao'], "estrat": s['estrat'], "area": s['area'], "resp": "A Definir", "prazo": "30 dias"})
         
