@@ -2271,9 +2271,23 @@ def admin_dashboard():
                 st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
                 st.write("### Configuração Estrutural Core (Extremamente Delicado)")
                 base = st.text_input("Endereço de Produção Web Atual (Responsável direto e vital por viabilizar as URL/Links de Questionários para os Trabalhadores)", value=st.session_state.platform_config.get('base_url', ''))
+                
                 if st.button("🔗 Gravar Alteração e Reordenar Rotas de Servidor", type="primary"):
-                    st.session_state.platform_config['base_url'] = base
-                    st.success("✅ As trilhas de rotas foram remapeadas com extremo sucesso no sistema em nuvem.")
+                    new_conf = st.session_state.platform_config.copy()
+                    new_conf['base_url'] = base
+                    
+                    # Salva a URL no banco de dados para não sumir no F5
+                    if DB_CONNECTED:
+                        try:
+                            res = supabase.table('platform_settings').select("*").execute()
+                            if res.data: 
+                                supabase.table('platform_settings').update({"config_json": new_conf}).eq("id", res.data[0]['id']).execute()
+                            else: 
+                                supabase.table('platform_settings').insert({"config_json": new_conf}).execute()
+                        except: pass
+                        
+                    st.session_state.platform_config = new_conf
+                    st.success("✅ As trilhas de rotas foram remapeadas com extremo sucesso no sistema em nuvem e gravadas no banco de dados.")
                     time.sleep(1.5)
                     st.rerun()
                     
