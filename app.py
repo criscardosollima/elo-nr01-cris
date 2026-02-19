@@ -139,7 +139,7 @@ if 'companies_db' not in st.session_state:
             "valid_until": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
             "dimensoes": {"Demandas": 2.1, "Controle": 3.8, "Suporte Gestor": 2.5, "Suporte Pares": 4.0, "Relacionamentos": 2.9, "Papel": 4.5, "Mudança": 3.0},
              "detalhe_perguntas": {
-                 "Tenho prazos impossíveis de cumprir?": 65, "Sou pressionado a trabalhar longas horas?": 45
+                 "Prazos impossíveis de cumprir?": 65, "Pressão para trabalhar longas horas?": 45, "Tenho que trabalhar muito intensamente?": 55
              },
              "org_structure": {
                  "Administrativo": ["Analista", "Assistente", "Gerente"],
@@ -375,7 +375,8 @@ def login_screen():
                     else:
                         st.session_state.logged_in = True
                         st.session_state.user_role = 'admin'
-                        # GARANTIA DE ACESSO MASTER
+                        
+                        # GARANTIA MASTER
                         if user == 'admin':
                             user_role_type = 'Master'
                             user_credits = 99999
@@ -617,19 +618,48 @@ def admin_dashboard():
                         u_pass = st.text_input("Senha de Acesso", type="password")
 
                         if st.form_submit_button("Cadastrar Empresa e Usuário"):
-                            logo_str = image_to_base64(logo_cliente)
-                            new_c = {"id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, "setor": "Geral", "risco": risco, "func": func, "limit_evals": limit_evals, "segmentacao": segmentacao, "resp": resp, "email": email, "telefone": tel, "endereco": end, "valid_until": valid_date.isoformat(), "logo_b64": logo_str, "score": 0, "respondidas": 0, "owner": curr_user, "dimensoes": {}, "detalhe_perguntas": {}, "org_structure": {"Geral": ["Geral"]}}
-                            st.session_state.companies_db.append(new_c)
-                            if u_login and u_pass:
-                                st.session_state.users_db[u_login] = {
-                                    "password": u_pass, 
-                                    "role": "Analista", 
-                                    "credits": limit_evals, 
-                                    "valid_until": valid_date.isoformat(),
-                                    "linked_company_id": cod 
+                            # VALIDACAO DE CAMPOS OBRIGATORIOS
+                            if not razao or not cod:
+                                st.error("Razão Social e ID de Acesso são obrigatórios.")
+                            else:
+                                logo_str = image_to_base64(logo_cliente)
+                                
+                                # 1. Cria objeto da empresa
+                                new_c = {
+                                    "id": cod, "razao": razao, "cnpj": cnpj, "cnae": cnae, 
+                                    "setor": "Geral", "risco": risco, "func": func, 
+                                    "limit_evals": limit_evals, "segmentacao": segmentacao, 
+                                    "resp": resp, "email": email, "telefone": tel, 
+                                    "endereco": end, "valid_until": valid_date.isoformat(), 
+                                    "logo_b64": logo_str, "score": 0, "respondidas": 0, 
+                                    "owner": curr_user, "dimensoes": {}, "detalhe_perguntas": {}, 
+                                    "org_structure": {"Geral": ["Geral"]}
                                 }
-                            st.success("Empresa e Acesso cadastrados com sucesso!")
-                            st.rerun()
+                                
+                                # 2. Salva LOCALMENTE (Para feedback imediato)
+                                st.session_state.companies_db.append(new_c)
+                                if u_login and u_pass:
+                                    st.session_state.users_db[u_login] = {
+                                        "password": u_pass, "role": "Analista", "credits": limit_evals, 
+                                        "valid_until": valid_date.isoformat(), "linked_company_id": cod 
+                                    }
+                                
+                                # 3. Tenta Salvar no SUPABASE
+                                if DB_CONNECTED:
+                                    try:
+                                        supabase.table('companies').insert(new_c).execute()
+                                        if u_login and u_pass:
+                                            supabase.table('admin_users').insert({
+                                                "username": u_login, "password": u_pass, "role": "Analista",
+                                                "credits": limit_evals, "valid_until": valid_date.isoformat(),
+                                                "linked_company_id": cod
+                                            }).execute()
+                                    except Exception as e:
+                                        st.warning(f"Salvo localmente. Erro no banco: {e}")
+
+                                st.success("✅ Empresa cadastrada com sucesso!")
+                                time.sleep(2)
+                                st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
     elif selected == "Setores & Cargos":
@@ -915,7 +945,7 @@ def admin_dashboard():
             fig_comp.add_trace(go.Scatterpolar(r=list(dados_b['dimensoes'].values()), theta=categories, fill='toself', name=f'{periodo_b}', line_color=COR_COMP_B, opacity=0.6))
             st.plotly_chart(fig_comp, use_container_width=True)
             
-            # --- RELATÓRIO DE HISTÓRICO EM PDF (CORRIGIDO) ---
+            # --- RELATÓRIO DE HISTÓRICO ---
             if st.button("📥 Baixar Relatório Evolutivo (HTML)", type="primary"):
                  st.markdown("---")
                  logo_html = get_logo_html(150)
@@ -926,7 +956,6 @@ def admin_dashboard():
                  diff_score = dados_b['score'] - dados_a['score']
                  txt_evolucao = "Melhoria observada" if diff_score > 0 else "Ponto de atenção"
                  
-                 # Usar CSS para barra de progresso visual em vez de imagem
                  chart_css_viz = f"""
                  <div style="text-align:center; padding:20px; border:1px solid #eee; border-radius:8px; font-family:sans-serif;">
                      <strong>Score {periodo_a}:</strong> {dados_a['score']} <br>
